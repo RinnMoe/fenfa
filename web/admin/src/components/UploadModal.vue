@@ -1,98 +1,89 @@
 <template>
   <div v-if="show && product && variant" class="modal-overlay" @click.self="handleClose">
-    <div class="modal-container">
+    <div class="modal-container upload-modal">
       <div class="modal-header">
         <h2 class="modal-title">{{ t.uploadModal.title }}</h2>
-        <button @click="handleClose" class="close-btn">✕</button>
+        <button @click="handleClose" class="close-btn" aria-label="Close">×</button>
       </div>
 
       <div class="modal-body">
-        <div class="app-info-section">
-          <div class="info-item">
-            <span class="info-label">{{ t.uploadModal.appName }}:</span>
-            <span class="info-value">{{ product.name }}</span>
+        <div class="upload-target">
+          <div>
+            <span class="info-label">{{ t.uploadModal.appName }}</span>
+            <span>{{ product.name }}</span>
           </div>
-          <div class="info-item">
-            <span class="info-label">{{ t.uploadModal.platform }}:</span>
-            <span class="info-value badge">{{ variant.platform }}</span>
+          <div>
+            <span class="info-label">{{ t.uploadModal.platform }}</span>
+            <span>{{ variant.platform }}</span>
           </div>
-          <div class="info-item">
-            <span class="info-label">{{ t.uploadModal.identifier }}:</span>
-            <span class="info-value app-id">{{ variant.identifier }}</span>
+          <div>
+            <span class="info-label">{{ t.uploadModal.identifier }}</span>
+            <span class="mono">{{ variant.identifier }}</span>
           </div>
         </div>
 
-        <div class="form-section">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="label">{{ t.uploadModal.versionRequired }}</label>
-              <input v-model="form.version" :placeholder="t.uploadModal.versionPlaceholder" class="input">
-            </div>
-            <div class="form-group">
-              <label class="label">{{ t.uploadModal.build }}</label>
-              <input v-model="form.build" :placeholder="t.uploadModal.buildPlaceholder" class="input">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="label">{{ t.uploadModal.channel }}</label>
-              <input v-model="form.channel" :placeholder="t.uploadModal.channelPlaceholder" class="input">
-            </div>
-            <div class="form-group">
-              <label class="label">{{ t.uploadModal.minOS }}</label>
-              <input v-model="form.min_os" :placeholder="t.uploadModal.minOSPlaceholder" class="input">
-            </div>
-          </div>
-
+        <div class="form-grid">
           <div class="form-group">
-            <label class="label">{{ t.uploadModal.changelog }}</label>
-            <textarea v-model="form.changelog" :placeholder="t.uploadModal.changelogPlaceholder" class="input textarea" rows="3"></textarea>
+            <label class="label">{{ t.uploadModal.versionRequired }}</label>
+            <input v-model="form.version" :placeholder="t.uploadModal.versionPlaceholder" class="input">
           </div>
-
-          <div class="form-row">
-            <div class="form-group checkbox-group">
-              <label class="label checkbox-label">
-                <input v-model="form.force_update" type="checkbox">
-                {{ t.uploadModal.forceUpdate }}
-              </label>
-            </div>
-          </div>
-
           <div class="form-group">
-            <label class="label">{{ t.uploadModal.fileRequired }}</label>
-            <div
-              class="dropzone"
-              :class="{ dragover: isDragging, 'has-file': selectedFile }"
-              @drop.prevent="handleDrop"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @click="triggerFileInput"
+            <label class="label">{{ t.uploadModal.build }}</label>
+            <input v-model="form.build" :placeholder="t.uploadModal.buildPlaceholder" class="input">
+          </div>
+          <div class="form-group">
+            <label class="label">{{ t.uploadModal.channel }}</label>
+            <input v-model="form.channel" :placeholder="t.uploadModal.channelPlaceholder" class="input">
+          </div>
+          <div class="form-group">
+            <label class="label">{{ t.uploadModal.minOS }}</label>
+            <input v-model="form.min_os" :placeholder="t.uploadModal.minOSPlaceholder" class="input">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-3)">
+          <label class="label">{{ t.uploadModal.changelog }}</label>
+          <textarea v-model="form.changelog" :placeholder="t.uploadModal.changelogPlaceholder" class="textarea" rows="3"></textarea>
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-3)">
+          <label class="checkbox-label">
+            <input v-model="form.force_update" type="checkbox">
+            {{ t.uploadModal.forceUpdate }}
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-3)">
+          <label class="label">{{ t.uploadModal.fileRequired }}</label>
+          <div
+            class="dropzone"
+            :class="{ dragover: isDragging, 'has-file': selectedFile }"
+            @drop.prevent="handleDrop"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @click="triggerFileInput"
+          >
+            <input
+              ref="fileInput"
+              type="file"
+              :accept="acceptTypes"
+              @change="handleFileSelect"
+              class="visually-hidden"
             >
-              <input
-                ref="fileInput"
-                type="file"
-                :accept="acceptTypes"
-                @change="handleFileSelect"
-                style="display: none"
-              >
 
-              <div v-if="!selectedFile" class="dropzone-placeholder">
-                <div class="upload-icon">📦</div>
-                <div class="upload-text">
-                  <p class="primary-text">{{ t.uploadModal.dragDropText }}</p>
-                  <p class="secondary-text">{{ t.uploadModal.orClickToSelect }}</p>
-                  <p class="file-type-text">{{ acceptTypes }}</p>
-                </div>
-              </div>
+            <div v-if="!selectedFile" class="dropzone-placeholder">
+              <Icon name="upload" :size="16" />
+              <p class="primary-text">{{ t.uploadModal.dragDropText }}</p>
+              <p class="secondary-text">{{ t.uploadModal.orClickToSelect }}</p>
+              <p class="file-type-text">{{ acceptTypes }}</p>
+            </div>
 
-              <div v-else class="file-selected">
-                <div class="file-info">
-                  <div class="file-name">{{ selectedFile.name }}</div>
-                  <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
-                </div>
-                <button @click.stop="clearFile" class="remove-file-btn">✕</button>
+            <div v-else class="file-selected">
+              <div class="file-info">
+                <div class="file-name">{{ selectedFile.name }}</div>
+                <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
               </div>
+              <button @click.stop="clearFile" class="remove-file-btn" aria-label="Remove file">×</button>
             </div>
           </div>
         </div>
@@ -112,7 +103,7 @@
               <div><strong>{{ t.uploadModal.downloadPage }}:</strong> <a :href="uploadResult.data.urls.page" target="_blank">{{ uploadResult.data.urls.page }}</a></div>
             </div>
           </div>
-          <div v-else class="error-message">
+          <div v-else>
             {{ t.uploadModal.uploadFailed }}: {{ uploadResult.error?.message || t.uploadModal.unknownError }}
           </div>
         </div>
@@ -131,6 +122,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from '../i18n'
+import Icon from './Icon.vue'
 
 const props = defineProps<{
   show: boolean
@@ -312,125 +304,34 @@ async function handleUpload() {
 </script>
 
 <style scoped>
-.modal-container {
-  max-width: 600px;
+.upload-modal {
+  max-width: 560px;
 }
 
-.app-info-section {
+.upload-target {
   display: grid;
-  gap: 8px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 }
 
-.info-item {
+.upload-target div {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .info-label {
-  width: 110px;
   color: var(--text-muted);
-}
-
-.app-id {
-  font-family: monospace;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: flex-end;
-}
-
-.checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.dropzone {
-  margin-top: 8px;
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.dropzone.dragover {
-  border-color: var(--purple);
-}
-
-.dropzone-placeholder {
-  display: grid;
-  gap: 6px;
-  text-align: center;
-}
-
-.upload-icon {
-  font-size: 28px;
-}
-
-.secondary-text,
-.file-type-text {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.file-selected {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.file-name {
-  font-weight: 600;
-}
-
-.file-size {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.remove-file-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.progress-section,
-.result-section {
-  margin-top: 16px;
-}
-
-.progress-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--purple), var(--purple-light));
-}
-
-.progress-text,
-.error-message {
-  margin-top: 8px;
-  color: var(--text-muted);
-}
-
-@media (max-width: 640px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 </style>

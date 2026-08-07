@@ -13,8 +13,8 @@
             </div>
             <div v-else class="profile-content">
               <!-- Basic Info -->
-              <div class="section">
-                <h4 class="section-title">{{ t.profile.basicInfo }}</h4>
+              <div class="profile-section">
+                <h4 class="profile-section-title">{{ t.profile.basicInfo }}</h4>
                 <div class="info-grid">
                   <div class="info-item">
                     <span class="label">{{ t.profile.profileName }}</span>
@@ -38,8 +38,8 @@
               </div>
 
               <!-- Team Info -->
-              <div class="section">
-                <h4 class="section-title">{{ t.profile.teamInfo }}</h4>
+              <div class="profile-section">
+                <h4 class="profile-section-title">{{ t.profile.teamInfo }}</h4>
                 <div class="info-grid">
                   <div class="info-item">
                     <span class="label">{{ t.profile.teamName }}</span>
@@ -61,8 +61,8 @@
               </div>
 
               <!-- Validity -->
-              <div class="section">
-                <h4 class="section-title">{{ t.profile.validity }}</h4>
+              <div class="profile-section">
+                <h4 class="profile-section-title">{{ t.profile.validity }}</h4>
                 <div class="info-grid">
                   <div class="info-item">
                     <span class="label">{{ t.profile.creationDate }}</span>
@@ -80,8 +80,8 @@
               </div>
 
               <!-- Devices -->
-              <div v-if="profile.provisioned_devices && profile.provisioned_devices.length > 0" class="section">
-                <h4 class="section-title">
+              <div v-if="profile.provisioned_devices && profile.provisioned_devices.length > 0" class="profile-section">
+                <h4 class="profile-section-title">
                   {{ t.profile.devices }}
                   <span class="count-badge">{{ profile.device_count || profile.provisioned_devices.length }}</span>
                 </h4>
@@ -92,14 +92,14 @@
                   </div>
                 </div>
               </div>
-              <div v-else-if="profile.provisions_all_devices" class="section">
-                <h4 class="section-title">{{ t.profile.devices }}</h4>
+              <div v-else-if="profile.provisions_all_devices" class="profile-section">
+                <h4 class="profile-section-title">{{ t.profile.devices }}</h4>
                 <div class="enterprise-badge">{{ t.profile.enterpriseAllDevices }}</div>
               </div>
 
               <!-- Certificates -->
-              <div v-if="profile.certificates && profile.certificates.length > 0" class="section">
-                <h4 class="section-title">
+              <div v-if="profile.certificates && profile.certificates.length > 0" class="profile-section">
+                <h4 class="profile-section-title">
                   {{ t.profile.certificates }}
                   <span class="count-badge">{{ profile.certificates.length }}</span>
                 </h4>
@@ -115,8 +115,8 @@
               </div>
 
               <!-- Entitlements -->
-              <div v-if="profile.entitlements && Object.keys(profile.entitlements).length > 0" class="section">
-                <h4 class="section-title">{{ t.profile.entitlements }}</h4>
+              <div v-if="profile.entitlements && Object.keys(profile.entitlements).length > 0" class="profile-section">
+                <h4 class="profile-section-title">{{ t.profile.entitlements }}</h4>
                 <div class="entitlements-box">
                   <pre>{{ JSON.stringify(profile.entitlements, null, 2) }}</pre>
                 </div>
@@ -251,57 +251,232 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dialog-container { max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; }
-.dialog-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
-.dialog-footer { flex-shrink: 0; }
-.loading, .empty-state { color: var(--text-muted); text-align: center; padding: 40px 0; }
+.dialog-container {
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
 
-.profile-content { display: flex; flex-direction: column; gap: 20px; }
+.dialog-body {
+  flex: 1;
+}
 
-.section { background: var(--bg-deepest); border: 1px solid var(--divider); border-radius: 12px; padding: 16px; }
-.section-title { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--text-body); display: flex; align-items: center; gap: 8px; }
-.count-badge { background: var(--blue); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+.dialog-footer {
+  flex-shrink: 0;
+}
 
-.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-@media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+.loading,
+.empty-state {
+  padding: var(--space-6) 0;
+  color: var(--text-muted);
+  text-align: center;
+}
 
-.info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-item .label { font-size: 12px; color: var(--text-dim); }
-.info-item .value { font-size: 14px; color: var(--text-body); word-break: break-all; }
-.info-item .value.mono { font-family: monospace; font-size: 13px; }
+.profile-content {
+  display: flex;
+  flex-direction: column;
+}
 
-.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
-.type-dev { background: var(--blue-deep); color: var(--blue-light); border: 1px solid var(--blue); }
-.type-adhoc { background: var(--orange-deep); color: var(--orange); border: 1px solid var(--orange-dark); }
-.type-enterprise { background: var(--green-deep); color: var(--green); border: 1px solid var(--green-dark); }
-.type-appstore { background: var(--purple-deep); color: var(--purple-light); border: 1px solid var(--purple); }
-.type-distribution { background: var(--border); color: var(--text-muted); border: 1px solid var(--text-dim); }
+.profile-section {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-muted);
+}
 
-.text-danger { color: var(--red); }
-.text-warning { color: var(--orange); }
+.profile-section:last-child {
+  border-bottom: none;
+}
 
-.status-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
-.status-tag.expired { background: var(--red-deep); color: var(--red-text); }
-.status-tag.expiring { background: var(--orange-deep); color: var(--orange); }
+.profile-section-title {
+  margin: 0 0 var(--space-3);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
 
-.device-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
-.device-item { display: flex; align-items: center; gap: 10px; background: var(--bg-card); padding: 8px 12px; border-radius: 8px; }
-.device-index { background: var(--border); color: var(--text-muted); font-size: 11px; padding: 2px 8px; border-radius: 999px; }
-.device-udid { font-family: monospace; font-size: 12px; color: var(--text-secondary); }
+.count-badge {
+  padding: 1px 8px;
+  background: var(--accent-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font-size: 11px;
+}
 
-.enterprise-badge { background: var(--green-deep); color: var(--green); padding: 12px 16px; border-radius: 8px; text-align: center; }
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
 
-.cert-list { display: flex; flex-direction: column; gap: 10px; }
-.cert-item { background: var(--bg-card); padding: 12px; border-radius: 8px; }
-.cert-name { font-size: 14px; color: var(--text-body); font-weight: 500; margin-bottom: 6px; }
-.cert-details { display: flex; flex-wrap: wrap; gap: 16px; }
-.cert-sha1, .cert-expiry { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+@media (max-width: 600px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
-.entitlements-box { background: var(--bg-card); border-radius: 8px; padding: 12px; overflow-x: auto; }
-.entitlements-box pre { margin: 0; font-size: 12px; color: var(--text-muted); white-space: pre-wrap; word-break: break-all; }
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
 
-.btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; border: none; cursor: pointer; }
+.info-item .label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-.dialog-enter-active, .dialog-leave-active { transition: opacity 0.2s ease; }
-.dialog-enter-from, .dialog-leave-to { opacity: 0; }
+.info-item .value {
+  color: var(--text-secondary);
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.info-item .value.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.badge {
+  font-size: 12px;
+}
+
+.type-dev,
+.type-adhoc,
+.type-enterprise,
+.type-appstore,
+.type-distribution {
+  color: var(--text-secondary);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.status-tag {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+}
+
+.status-tag.expired {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+.status-tag.expiring {
+  background: var(--warning-subtle);
+  color: var(--warning);
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 8px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-control);
+}
+
+.device-index {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.device-udid {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.enterprise-badge {
+  padding: 8px 12px;
+  background: var(--success-subtle);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-control);
+  color: var(--success);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cert-item {
+  padding: 8px 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-control);
+}
+
+.cert-name {
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cert-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.cert-sha1,
+.cert-expiry {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.entitlements-box {
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-control);
+}
+
+.entitlements-box pre {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.dialog-enter-active,
+.dialog-leave-active {
+  transition: opacity 0.12s ease;
+}
+
+.dialog-enter-from,
+.dialog-leave-to {
+  opacity: 0;
+}
 </style>

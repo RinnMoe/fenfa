@@ -331,67 +331,42 @@ function handleClose() {
 
 <style scoped>
 .announcement-modal {
-  max-width: 860px;
+  max-width: 640px;
 }
 
 .announcement-product {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-3);
   color: var(--text-muted);
+  font-size: 13px;
 }
 
 .announcement-toolbar {
-  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
 }
 
 .announcement-form {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  background: var(--bg-card);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.form-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.textarea {
-  resize: vertical;
-}
-
-.checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
 }
 
 .announcement-state,
 .empty-state {
+  padding: var(--space-4);
+  color: var(--text-muted);
   text-align: center;
-  padding: 24px;
-  color: var(--text-muted);
 }
 
-.btn-text-danger {
-  color: var(--red);
-}
-
-.status-on {
-  color: var(--green);
-}
-
-.status-off {
-  color: var(--text-muted);
+.table-container {
+  max-height: 340px;
+  overflow-y: auto;
 }
 
 @media (max-width: 640px) {
