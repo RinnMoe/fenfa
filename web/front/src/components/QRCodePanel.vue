@@ -1,8 +1,7 @@
 <template>
   <aside class="qr-panel">
-    <span class="qr-title">{{ t.actions.scan }}</span>
-    <canvas ref="canvas" width="148" height="148"></canvas>
-    <span class="qr-url">{{ url }}</span>
+    <canvas ref="canvas" width="132" height="132"></canvas>
+    <span class="qr-label">{{ t.actions.scan }}</span>
   </aside>
 </template>
 
@@ -22,7 +21,7 @@ async function render() {
   await nextTick()
   if (!canvas.value || !props.url) return
   try {
-    await QRCode.toCanvas(canvas.value, props.url, { width: 148, margin: 1 })
+    await QRCode.toCanvas(canvas.value, props.url, { width: 132, margin: 1 })
   } catch (err) {
     console.warn('qr failed', err)
   }

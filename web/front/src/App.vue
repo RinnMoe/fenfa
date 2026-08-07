@@ -13,42 +13,39 @@
     <div v-else-if="productData" class="product-page">
       <ProductHeader
         :product="productData.product"
-        :variants="sortedVariants"
+        :variant="activeVariant"
+        :release="activeRelease"
       />
 
-      <div class="content-grid">
-        <main class="release-main">
-          <PlatformTabs
-            v-if="activeVariant"
-            :variants="sortedVariants"
-            v-model="activeVariantId"
-          />
+      <PlatformTabs
+        v-if="activeVariant && sortedVariants.length > 1"
+        :variants="sortedVariants"
+        v-model="activeVariantId"
+      />
 
-          <ReleaseDetails
-            v-if="activeVariant"
-            :variant="activeVariant"
-            :release="activeRelease"
-            :product-name="productData.product.name"
-          />
+      <ReleaseActions
+        v-if="activeVariant"
+        :action="action"
+        :variant="activeVariant"
+        :udid-bound="udidBound"
+        @primary="handlePrimaryAction"
+      />
 
-          <ReleaseActions
-            v-if="activeVariant"
-            :action="action"
-            :variant="activeVariant"
-            :udid-bound="udidBound"
-            @primary="handlePrimaryAction"
-          />
+      <QRCodePanel v-if="activeVariant && activeRelease" :url="pageURL" />
 
-          <ReleaseHistory
-            v-if="activeVariant"
-            :releases="activeVariant.releases"
-            :selected-release-id="activeRelease?.id || ''"
-            @select="selectRelease"
-          />
-        </main>
+      <ReleaseDetails
+        v-if="activeRelease?.changelog"
+        :release="activeRelease"
+      />
 
-        <QRCodePanel :url="pageURL" />
-      </div>
+      <ReleaseHistory
+        v-if="activeVariant"
+        :releases="activeVariant.releases"
+        :selected-release-id="activeRelease?.id || ''"
+        @select="selectRelease"
+      />
+
+      <footer class="page-footer">{{ t.footer.branding }}</footer>
     </div>
   </div>
 </template>
@@ -78,7 +75,7 @@ const {
   selectRelease: selectReleaseState,
   sortedVariants
 } = useProduct()
-const { fetchUDIDStatuses, getVariantAction, handlePrimaryAction: handleUDIDAction, installing, udidBound } = useUDID()
+const { fetchUDIDStatuses, getVariantAction, handlePrimaryAction: handleUDIDAction, udidBound } = useUDID()
 const { logVisit, trackAction } = useTracking()
 
 const pathParts = location.pathname.split('/').filter(Boolean)
@@ -100,10 +97,6 @@ const action = computed(() => {
   }
   return getVariantAction(activeVariant.value, activeRelease.value, t.value)
 })
-
-function selectVariant(id: string) {
-  activeVariantId.value = id
-}
 
 function selectRelease(id: string) {
   if (!activeVariant.value) return

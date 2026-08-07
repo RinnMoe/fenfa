@@ -5,25 +5,27 @@
       <span v-else>{{ product.name.slice(0, 1).toUpperCase() }}</span>
     </div>
     <div class="product-copy">
-      <div class="product-kicker">{{ t.hero.productCenter }}</div>
       <h1 class="product-name">{{ product.name }}</h1>
-      <p class="product-subtitle">{{ t.hero.subtitle }}</p>
-      <div class="platform-labels">
-        <span v-for="variant in variants" :key="variant.id">{{ platformLabel(variant.platform) }}</span>
-      </div>
+      <p v-if="variant" class="product-meta">
+        <span class="product-platform">{{ platformLabel(variant.platform) }}</span>
+        <span v-if="release" class="product-version">{{ formatVersion(release.version) }}</span>
+        <span v-if="release?.created_at" class="product-date">{{ formatDate(release.created_at) }}</span>
+      </p>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { useI18n } from '../i18n'
-import { platformLabel } from '../composables/useProduct'
-import type { ProductData } from '../types'
+import { formatDate, platformLabel } from '../composables/useProduct'
+import type { ProductData, ReleaseItem, VariantItem } from '../types'
 
 defineProps<{
   product: ProductData['product']
-  variants: ProductData['variants']
+  variant: VariantItem | null
+  release: ReleaseItem | null
 }>()
 
-const { t } = useI18n()
+function formatVersion(version: string) {
+  return version.startsWith('v') ? version : `v${version}`
+}
 </script>

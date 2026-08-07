@@ -1,33 +1,37 @@
 <template>
-  <section v-if="releases.length" class="release-history">
-    <h2>{{ t.variant.allVersions }}</h2>
-    <div class="history-table">
-      <div class="history-row history-head">
-        <span>{{ t.variant.version }}</span>
-        <span>{{ t.variant.build }}</span>
-        <span>{{ t.variant.updatedAt }}</span>
-        <span>{{ t.common.action }}</span>
-      </div>
+  <section v-if="releases.length > 1" class="release-history">
+    <button
+      type="button"
+      class="history-toggle"
+      :aria-expanded="expanded"
+      @click="expanded = !expanded"
+    >
+      <span>{{ expanded ? t.variant.hideVersions : t.variant.otherVersions }}</span>
+      <span class="history-chevron" aria-hidden="true"></span>
+    </button>
+
+    <div v-if="expanded" class="history-list">
       <button
         v-for="release in releases"
         :key="release.id"
         type="button"
         class="history-row"
         :class="{ active: release.id === selectedReleaseID }"
+        :aria-current="release.id === selectedReleaseID ? 'true' : undefined"
         @click="$emit('select', release.id)"
       >
-        <span class="version">{{ release.version }}</span>
-        <span class="muted">{{ release.build || '-' }}</span>
-        <span class="muted">{{ formatTime(release.created_at) }}</span>
-        <span class="history-action">{{ release.id === selectedReleaseID ? t.variant.current : t.variant.select }}</span>
+        <span class="history-version">{{ formatVersion(release.version) }}</span>
+        <span class="history-date">{{ formatDate(release.created_at) }}</span>
+        <span v-if="release.id === selectedReleaseID" class="history-current">{{ t.variant.current }}</span>
       </button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from '../i18n'
-import { formatTime as formatTimeRaw } from '../composables/useProduct'
+import { formatDate } from '../composables/useProduct'
 import type { ReleaseItem } from '../types'
 
 defineProps<{
@@ -40,8 +44,9 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const expanded = ref(false)
 
-function formatTime(value: string) {
-  return formatTimeRaw(value, t.value)
+function formatVersion(version: string) {
+  return version.startsWith('v') ? version : `v${version}`
 }
 </script>

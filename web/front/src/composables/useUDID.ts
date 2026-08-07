@@ -62,10 +62,17 @@ export function useUDID() {
         label: t.actions.bindDevice
       }
     }
+    const downloadLabels: Record<string, string> = {
+      android: t.actions.downloadAndroid,
+      windows: t.actions.downloadWindows,
+      macos: t.actions.downloadMacos,
+      linux: t.actions.downloadLinux
+    }
+
     return {
       type: 'download',
       href: release.actions?.download || '',
-      label: t.actions.download
+      label: downloadLabels[variant.platform] || t.actions.download
     }
   }
 
