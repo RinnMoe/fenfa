@@ -84,8 +84,8 @@ func AdminCreateAnnouncement(db *gorm.DB) gin.HandlerFunc {
 			Title:     strings.TrimSpace(input.Title),
 			Content:   input.Content,
 			Enabled:   enabled,
-			StartAt:   input.StartAt,
-			EndAt:     input.EndAt,
+			StartAt:   toUTC(input.StartAt),
+			EndAt:     toUTC(input.EndAt),
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
@@ -131,8 +131,8 @@ func AdminUpdateAnnouncement(db *gorm.DB) gin.HandlerFunc {
 			"title":      strings.TrimSpace(input.Title),
 			"content":    input.Content,
 			"enabled":    enabled,
-			"start_at":   input.StartAt,
-			"end_at":     input.EndAt,
+			"start_at":   toUTC(input.StartAt),
+			"end_at":     toUTC(input.EndAt),
 			"updated_at": time.Now(),
 		}
 		if err := db.Model(&announcement).Updates(updates).Error; err != nil {
@@ -175,6 +175,14 @@ func validateAnnouncementInput(input adminAnnouncementInput) string {
 		return "start_at must not be after end_at"
 	}
 	return ""
+}
+
+func toUTC(t *time.Time) *time.Time {
+	if t == nil {
+		return nil
+	}
+	utc := t.UTC()
+	return &utc
 }
 
 func announcementView(announcement store.Announcement) gin.H {

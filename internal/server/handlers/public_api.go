@@ -94,7 +94,7 @@ func PublicAnnouncements(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		now := time.Now()
+		now := time.Now().UTC()
 		var announcements []store.Announcement
 		if err := db.Where(
 			"product_id = ? AND enabled = ? AND (start_at IS NULL OR start_at <= ?) AND (end_at IS NULL OR end_at >= ?)",

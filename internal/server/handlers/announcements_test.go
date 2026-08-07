@@ -75,10 +75,10 @@ func TestPublicAnnouncementsFiltersEnabledAndTimeWindow(t *testing.T) {
 	now := time.Now()
 
 	announcements := []store.Announcement{
-		{ID: "ann_active", ProductID: product.ID, Title: "Active", Content: "Active content", Enabled: true, StartAt: nil, EndAt: nil, CreatedAt: now},
-		{ID: "ann_disabled", ProductID: product.ID, Title: "Disabled", Content: "Disabled content", Enabled: false, CreatedAt: now},
-		{ID: "ann_future", ProductID: product.ID, Title: "Future", Content: "Future content", Enabled: true, StartAt: timePtr(now.Add(2 * time.Hour)), CreatedAt: now},
-		{ID: "ann_expired", ProductID: product.ID, Title: "Expired", Content: "Expired content", Enabled: true, EndAt: timePtr(now.Add(-2 * time.Hour)), CreatedAt: now},
+		{ID: "ann_active", ProductID: product.ID, Title: "Active", Content: "Active content", Enabled: true, StartAt: nil, EndAt: nil, CreatedAt: now.UTC()},
+		{ID: "ann_disabled", ProductID: product.ID, Title: "Disabled", Content: "Disabled content", Enabled: false, CreatedAt: now.UTC()},
+		{ID: "ann_future", ProductID: product.ID, Title: "Future", Content: "Future content", Enabled: true, StartAt: timePtr(now.Add(2 * time.Hour).UTC()), CreatedAt: now.UTC()},
+		{ID: "ann_expired", ProductID: product.ID, Title: "Expired", Content: "Expired content", Enabled: true, EndAt: timePtr(now.Add(-2 * time.Hour).UTC()), CreatedAt: now.UTC()},
 	}
 	for _, announcement := range announcements {
 		shouldDisable := !announcement.Enabled
