@@ -79,31 +79,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.main-layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  background: var(--bg-deepest);
-}
-
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 32px;
-}
-
-.dev-banner {
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: var(--badge-bg);
-  color: var(--blue-light);
-  border: 1px solid var(--blue);
-  font-size: 14px;
-}
-</style>

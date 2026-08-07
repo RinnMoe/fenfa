@@ -1,0 +1,142 @@
+:root {
+  color-scheme: dark;
+
+  --canvas: #101214;
+  --surface: #17191c;
+  --surface-subtle: #1d2024;
+  --surface-hover: #23272c;
+
+  --border: #2b2f34;
+  --border-muted: #24282d;
+  --border-strong: #3a3f46;
+
+  --text-primary: #f1f3f5;
+  --text-secondary: #a7afb8;
+  --text-muted: #737c87;
+  --text-faint: #4d565f;
+
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-subtle: #172554;
+
+  --success: #4ade80;
+  --success-subtle: #10251a;
+  --warning: #fbbf24;
+  --warning-subtle: #2b2110;
+  --danger: #f87171;
+  --danger-subtle: #32181a;
+
+  --overlay-bg: rgba(4, 6, 10, 0.62);
+  --divider: rgba(255, 255, 255, 0.08);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 4px;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-pill: 999px;
+
+  --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+
+  --control-height: 32px;
+  --control-height-sm: 28px;
+  --row-height: 38px;
+  --table-header-height: 32px;
+  --sidebar-width: 216px;
+
+  /* Legacy aliases used by pages that are still being migrated. */
+  --bg-deepest: var(--canvas);
+  --bg-card: var(--surface);
+  --bg-hover: var(--surface-subtle);
+  --text-bright: var(--text-primary);
+  --text-body: var(--text-secondary);
+  --text-secondary: var(--text-secondary);
+  --text-muted: var(--text-muted);
+  --text-dim: var(--text-faint);
+  --border: var(--border);
+  --border-hover: var(--border-strong);
+
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --primary-deep: var(--accent-subtle);
+  --blue: var(--accent);
+  --blue-dark: var(--accent-hover);
+  --blue-light: var(--accent);
+  --blue-pale: var(--accent);
+  --blue-deep: var(--accent-subtle);
+  --purple: var(--accent);
+  --purple-dark: var(--accent-hover);
+  --purple-alt: var(--accent);
+  --purple-light: var(--accent);
+  --purple-deep: var(--accent-subtle);
+
+  --green: var(--success);
+  --green-dark: var(--success);
+  --green-deep: var(--success-subtle);
+  --green-pale: var(--success);
+  --red: var(--danger);
+  --red-dark: var(--danger);
+  --red-deep: var(--danger-subtle);
+  --red-text: var(--danger);
+  --orange: var(--warning);
+  --orange-dark: var(--warning);
+  --orange-deep: var(--warning-subtle);
+
+  --btn-primary-bg: var(--accent);
+  --btn-primary-bg-hover: var(--accent-hover);
+  --card-shadow: none;
+  --modal-shadow: var(--shadow-modal);
+  --toast-shadow: var(--shadow-popover);
+  --badge-bg: rgba(96, 165, 250, 0.12);
+  --success-bg: var(--success-subtle);
+  --error-bg: var(--danger-subtle);
+  --error-msg-bg: var(--danger-subtle);
+  --dropzone-hover-bg: rgba(96, 165, 250, 0.08);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --canvas: #f7f7f8;
+  --surface: #ffffff;
+  --surface-subtle: #f3f4f6;
+  --surface-hover: #eceef1;
+
+  --border: #d9dce1;
+  --border-muted: #e8eaed;
+  --border-strong: #c8ccd2;
+
+  --text-primary: #20242a;
+  --text-secondary: #626b75;
+  --text-muted: #87909a;
+  --text-faint: #aeb5bd;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
+
+  --success: #15803d;
+  --success-subtle: #f0fdf4;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --danger: #dc2626;
+  --danger-subtle: #fef2f2;
+
+  --overlay-bg: rgba(17, 24, 39, 0.32);
+  --divider: rgba(0, 0, 0, 0.08);
+
+  --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.18);
+}

@@ -1,11 +1,14 @@
 <template>
-  <aside class="sidebar" :class="{ collapsed }">
+  <aside class="sidebar">
     <div class="sidebar-header">
-      <h2 class="sidebar-title" :class="{ hidden: collapsed }">{{ t.sidebar.title }}</h2>
-      <p v-if="!collapsed" class="sidebar-subtitle">{{ t.sidebar.subtitle }}</p>
+      <div class="brand-mark">F</div>
+      <div class="brand-copy">
+        <strong>{{ t.sidebar.title }}</strong>
+        <span>{{ t.sidebar.subtitle }}</span>
+      </div>
     </div>
 
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" aria-label="Primary">
       <router-link
         v-for="item in menuItems"
         :key="item.id"
@@ -13,21 +16,27 @@
         class="nav-item"
         active-class="active"
       >
-        <span class="nav-icon"><Icon :name="item.icon" :size="20" /></span>
-        <span v-if="!collapsed" class="nav-text">{{ item.label }}</span>
+        <span class="nav-icon"><Icon :name="item.icon" :size="16" /></span>
+        <span class="nav-text">{{ item.label }}</span>
       </router-link>
     </nav>
 
     <div class="sidebar-footer">
-      <div v-if="!collapsed" class="footer-controls">
+      <div class="footer-controls">
         <LanguageSwitcher />
-        <button @click="toggleTheme" class="theme-toggle" :title="isDark ? t.sidebar.lightMode : t.sidebar.darkMode">
+        <button
+          class="theme-toggle"
+          type="button"
+          :aria-label="isDark ? t.sidebar.lightMode : t.sidebar.darkMode"
+          :title="isDark ? t.sidebar.lightMode : t.sidebar.darkMode"
+          @click="toggleTheme"
+        >
           <Icon :name="isDark ? 'sun' : 'moon'" :size="16" />
         </button>
       </div>
-      <button @click="$emit('logout')" class="btn-secondary btn-full">
-        <span class="logout-icon"><Icon name="log-out" :size="18" /></span>
-        <span v-if="!collapsed">{{ t.common.logout }}</span>
+      <button type="button" class="btn-ghost btn-full" @click="$emit('logout')">
+        <Icon name="log-out" :size="14" />
+        <span>{{ t.common.logout }}</span>
       </button>
     </div>
   </aside>
@@ -39,10 +48,6 @@ import { useI18n } from '../i18n'
 import { useTheme } from '../theme'
 import LanguageSwitcher from './LanguageSwitcher.vue'
 import Icon from './Icon.vue'
-
-defineProps<{
-  collapsed?: boolean
-}>()
 
 defineEmits<{
   logout: []
@@ -64,122 +69,138 @@ const menuItems = computed(() => [
 
 <style scoped>
 .sidebar {
-  width: 260px;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  width: var(--sidebar-width);
+  height: 100vh;
+  flex-shrink: 0;
   position: sticky;
   top: 0;
-  height: 100vh;
-  transition: width 0.3s;
-}
-
-.sidebar.collapsed {
-  width: 80px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
 }
 
 .sidebar-header {
-  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--border);
 }
 
-.sidebar-title {
-  margin: 0;
-  font-size: 20px;
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-bright);
-  transition: opacity 0.3s;
 }
 
-.sidebar-title.hidden {
-  opacity: 0;
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
 }
 
-.sidebar-subtitle {
-  margin: 4px 0 0 0;
-  font-size: 12px;
-  color: var(--text-dim);
+.brand-copy strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.brand-copy span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 16px 0;
+  padding: 8px;
   overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
   color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
+  font-size: 13px;
   text-decoration: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
 }
 
 .nav-item:hover {
-  background: var(--bg-deepest);
-  color: var(--text-body);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .nav-item.active {
-  background: var(--bg-deepest);
-  color: var(--text-bright);
-  border-left-color: var(--purple-dark);
-}
-
-.nav-icon {
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-}
-
-.nav-text {
-  font-size: 14px;
+  background: var(--surface-subtle);
+  color: var(--accent);
   font-weight: 500;
 }
 
+.nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.nav-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sidebar-footer {
-  padding: 16px;
+  padding: 8px;
   border-top: 1px solid var(--border);
 }
 
 .footer-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .theme-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--border);
-  color: var(--text-body);
-  border: none;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .theme-toggle:hover {
-  background: var(--bg-hover);
-  transform: translateY(-1px);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
 }
 
-.btn-full {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
+.sidebar-footer .btn-full {
+  justify-content: flex-start;
+  height: 32px;
+  font-size: 12px;
 }
 
-.logout-icon {
-  margin-right: 8px;
-}
 </style>
