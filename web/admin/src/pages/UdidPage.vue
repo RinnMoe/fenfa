@@ -1,15 +1,17 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.udidPage.title }}</h1>
-      <p class="page-subtitle">{{ t.udidPage.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.udidPage.title }}</h1>
+        <p class="page-subtitle">{{ t.udidPage.subtitle }}</p>
+      </div>
     </div>
 
-    <div class="card">
+    <div class="panel">
       <div class="filter-grid">
         <div class="form-group">
           <label class="label">{{ t.udidPage.iosVariant }}</label>
-          <select v-model="variantId" class="input" @change="queryFromFirstPage">
+          <select v-model="variantId" class="select" @change="queryFromFirstPage">
             <option value="">{{ t.udidPage.allVariants }}</option>
             <option v-for="variant in iosVariants" :key="variant.id" :value="variant.id">
               {{ variant.product_name }} ({{ variant.display_name || variant.identifier }})
@@ -34,7 +36,6 @@
         </div>
       </div>
 
-      <!-- Batch Actions -->
       <div v-if="selectedIds.length > 0 && appleConfigured" class="batch-actions">
         <span class="selected-count">{{ t.udidPage.selectedCount.replace('{count}', String(selectedIds.length)) }}</span>
         <button @click="batchRegister" :disabled="registering" class="btn-primary">
@@ -44,7 +45,7 @@
 
       <Pagination :total="totalItems" v-model:page="currentPage" :page-size="pageSize" />
 
-      <div v-if="loading" class="loading">{{ t.common.loading }}</div>
+      <div v-if="loading" class="loading-state">{{ t.common.loading }}</div>
 
       <div v-else class="table-wrapper">
         <table class="table">
@@ -75,7 +76,7 @@
                 <span v-if="d.apple_registered" class="status-dot status-on"><i></i>{{ t.udidPage.registered }}</span>
                 <span v-else class="status-dot status-off"><i></i>{{ t.udidPage.notRegistered }}</span>
               </td>
-              <td>{{ formatTs(d.created_at) }}</td>
+              <td class="date">{{ formatTs(d.created_at) }}</td>
               <td v-if="appleConfigured">
                 <button
                   v-if="!d.apple_registered"
@@ -94,7 +95,6 @@
 
       <Pagination :total="totalItems" v-model:page="currentPage" :page-size="pageSize" />
 
-      <!-- Messages -->
       <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
       <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
     </div>
@@ -329,104 +329,40 @@ onMounted(async () => {
 <style scoped>
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .form-group-actions {
   display: flex;
-  flex-direction: row;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .batch-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--primary-deep);
+  gap: var(--space-3);
+  padding: 8px 12px;
+  margin-bottom: var(--space-3);
+  background: var(--accent-subtle);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-control);
 }
 
 .selected-count {
   color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.table-wrapper { overflow-x: auto; }
-
-.th-checkbox, .td-checkbox {
-  width: 40px;
-  text-align: center;
-}
-
-.udid-code {
-  font-family: 'Monaco', 'Menlo', monospace;
   font-size: 12px;
-  background: var(--bg-deepest);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--text-body);
-}
-
-/* Status dot — same pattern as AppsPage */
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.status-dot i {
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.status-on {
-  color: var(--green);
-}
-
-.status-on i {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-}
-
-.status-off {
-  color: var(--text-dim);
-}
-
-.status-off i {
-  background: var(--text-dim);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0;
 }
 
 .btn-link:hover:not(:disabled) {
   text-decoration: underline;
 }
 
-.btn-link:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
 }
-
-.text-muted {
-  color: var(--text-dim);
-}
-
-.loading { padding: 12px; color: var(--text-muted); }
 </style>

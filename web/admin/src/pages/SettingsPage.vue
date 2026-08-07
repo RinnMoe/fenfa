@@ -1,172 +1,240 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.settings.title }}</h1>
-      <p class="page-subtitle">{{ t.settings.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.settings.title }}</h1>
+        <p class="page-subtitle">{{ t.settings.subtitle }}</p>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-state">
       {{ t.common.loading }}
     </div>
 
-    <form v-else @submit.prevent="handleSave">
-      <!-- General Settings -->
-      <div class="card">
-        <h2 class="card-title">{{ t.settings.generalTitle }}</h2>
-
-        <div class="form-group">
-          <label class="label required">{{ t.settings.primaryDomain }}</label>
-          <input
-            v-model="form.primaryDomain"
-            type="text"
-            class="input"
-            :placeholder="t.settings.primaryDomainPlaceholder"
-            required
-          >
-          <p class="help-text">{{ t.settings.primaryDomainHelp }}</p>
-          <p v-if="errors.primaryDomain" class="error-text">{{ errors.primaryDomain }}</p>
+    <form v-else class="settings-form" @submit.prevent="handleSave">
+      <section class="panel settings-section">
+        <div class="settings-head">
+          <h2 class="section-title">{{ t.settings.generalTitle }}</h2>
         </div>
 
-        <div class="form-group">
-          <label class="label">{{ t.settings.secondaryDomains }}</label>
-          <textarea
-            v-model="secondaryDomainsText"
-            class="input textarea"
-            :placeholder="t.settings.secondaryDomainsPlaceholder"
-            rows="4"
-          ></textarea>
-          <p class="help-text">{{ t.settings.secondaryDomainsHelp }}</p>
-        </div>
+        <div class="settings-body">
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label required" for="primary-domain">{{ t.settings.primaryDomain }}</label>
+              <p class="help-text">{{ t.settings.primaryDomainHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input
+                id="primary-domain"
+                v-model="form.primaryDomain"
+                type="text"
+                class="input"
+                :placeholder="t.settings.primaryDomainPlaceholder"
+                required
+              >
+              <p v-if="errors.primaryDomain" class="error-text">{{ errors.primaryDomain }}</p>
+            </div>
+          </div>
 
-        <div class="form-group">
-          <label class="label required">{{ t.settings.organization }}</label>
-          <input
-            v-model="form.organization"
-            type="text"
-            class="input"
-            :placeholder="t.settings.organizationPlaceholder"
-            required
-          >
-          <p class="help-text">{{ t.settings.organizationHelp }}</p>
-          <p v-if="errors.organization" class="error-text">{{ errors.organization }}</p>
-        </div>
-      </div>
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="secondary-domains">{{ t.settings.secondaryDomains }}</label>
+              <p class="help-text">{{ t.settings.secondaryDomainsHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <textarea
+                id="secondary-domains"
+                v-model="secondaryDomainsText"
+                class="textarea"
+                :placeholder="t.settings.secondaryDomainsPlaceholder"
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
 
-      <!-- Storage Configuration -->
-      <div class="card section-card">
-        <h2 class="card-title">{{ t.storage.title }}</h2>
-        <p class="card-subtitle">{{ t.storage.subtitle }}</p>
-
-        <div class="form-group">
-          <label class="label">{{ t.storage.storageType }}</label>
-          <div class="radio-group">
-            <label class="radio-label" :class="{ active: storageForm.storageType === 'local' }">
-              <input type="radio" v-model="storageForm.storageType" value="local">
-              <span class="radio-title">{{ t.storage.local }}</span>
-              <span class="radio-desc">{{ t.storage.localDesc }}</span>
-            </label>
-            <label class="radio-label" :class="{ active: storageForm.storageType === 's3' }">
-              <input type="radio" v-model="storageForm.storageType" value="s3">
-              <span class="radio-title">{{ t.storage.s3 }}</span>
-              <span class="radio-desc">{{ t.storage.s3Desc }}</span>
-            </label>
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label required" for="organization">{{ t.settings.organization }}</label>
+              <p class="help-text">{{ t.settings.organizationHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input
+                id="organization"
+                v-model="form.organization"
+                type="text"
+                class="input"
+                :placeholder="t.settings.organizationPlaceholder"
+                required
+              >
+              <p v-if="errors.organization" class="error-text">{{ errors.organization }}</p>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label class="label">{{ t.storage.uploadDomain }}</label>
-          <input
-            v-model="storageForm.uploadDomain"
-            type="text"
-            class="input"
-            :placeholder="t.storage.uploadDomainPlaceholder"
-          >
-          <p class="help-text">{{ t.storage.uploadDomainHelp }}</p>
+      <section class="panel settings-section">
+        <div class="settings-head">
+          <h2 class="section-title">{{ t.storage.title }}</h2>
+          <p class="settings-desc">{{ t.storage.subtitle }}</p>
         </div>
 
-        <template v-if="storageForm.storageType === 's3'">
-          <div class="form-group">
-            <label class="label">{{ t.storage.s3Endpoint }}</label>
-            <input v-model="storageForm.s3Endpoint" type="text" class="input" :placeholder="t.storage.s3EndpointPlaceholder">
-            <p class="help-text">{{ t.storage.s3EndpointHelp }}</p>
+        <div class="settings-body">
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label">{{ t.storage.storageType }}</label>
+            </div>
+            <div class="settings-field">
+              <div class="radio-group">
+                <label class="radio-label" :class="{ active: storageForm.storageType === 'local' }">
+                  <input type="radio" v-model="storageForm.storageType" value="local">
+                  <span class="radio-title">{{ t.storage.local }}</span>
+                  <span class="radio-desc">{{ t.storage.localDesc }}</span>
+                </label>
+                <label class="radio-label" :class="{ active: storageForm.storageType === 's3' }">
+                  <input type="radio" v-model="storageForm.storageType" value="s3">
+                  <span class="radio-title">{{ t.storage.s3 }}</span>
+                  <span class="radio-desc">{{ t.storage.s3Desc }}</span>
+                </label>
+              </div>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label class="label">{{ t.storage.s3Bucket }}</label>
-            <input v-model="storageForm.s3Bucket" type="text" class="input" :placeholder="t.storage.s3BucketPlaceholder">
-            <p class="help-text">{{ t.storage.s3BucketHelp }}</p>
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="upload-domain">{{ t.storage.uploadDomain }}</label>
+              <p class="help-text">{{ t.storage.uploadDomainHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input
+                id="upload-domain"
+                v-model="storageForm.uploadDomain"
+                type="text"
+                class="input"
+                :placeholder="t.storage.uploadDomainPlaceholder"
+              >
+            </div>
           </div>
 
-          <div class="form-group">
-            <label class="label">{{ t.storage.s3AccessKey }}</label>
-            <input v-model="storageForm.s3AccessKey" type="text" class="input" :placeholder="t.storage.s3AccessKeyPlaceholder">
-          </div>
+          <template v-if="storageForm.storageType === 's3'">
+            <div class="settings-row">
+              <div class="settings-copy">
+                <label class="label" for="s3-endpoint">{{ t.storage.s3Endpoint }}</label>
+                <p class="help-text">{{ t.storage.s3EndpointHelp }}</p>
+              </div>
+              <div class="settings-field">
+                <input id="s3-endpoint" v-model="storageForm.s3Endpoint" type="text" class="input" :placeholder="t.storage.s3EndpointPlaceholder">
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label class="label">{{ t.storage.s3SecretKey }}</label>
-            <input v-model="storageForm.s3SecretKey" type="password" class="input" :placeholder="storageForm.s3SecretKeySet ? t.storage.s3SecretKeyConfigured : t.storage.s3SecretKeyPlaceholder">
-          </div>
+            <div class="settings-row">
+              <div class="settings-copy">
+                <label class="label" for="s3-bucket">{{ t.storage.s3Bucket }}</label>
+                <p class="help-text">{{ t.storage.s3BucketHelp }}</p>
+              </div>
+              <div class="settings-field">
+                <input id="s3-bucket" v-model="storageForm.s3Bucket" type="text" class="input" :placeholder="t.storage.s3BucketPlaceholder">
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label class="label">{{ t.storage.s3PublicURL }}</label>
-            <input v-model="storageForm.s3PublicURL" type="text" class="input" :placeholder="t.storage.s3PublicURLPlaceholder">
-            <p class="help-text">{{ t.storage.s3PublicURLHelp }}</p>
-          </div>
-        </template>
-      </div>
+            <div class="settings-row">
+              <div class="settings-copy">
+                <label class="label" for="s3-access-key">{{ t.storage.s3AccessKey }}</label>
+              </div>
+              <div class="settings-field">
+                <input id="s3-access-key" v-model="storageForm.s3AccessKey" type="text" class="input" :placeholder="t.storage.s3AccessKeyPlaceholder">
+              </div>
+            </div>
 
-      <!-- Apple Developer Configuration -->
-      <div class="card section-card">
-        <h2 class="card-title">{{ t.apple.title }}</h2>
-        <p class="card-subtitle">{{ t.apple.subtitle }}</p>
+            <div class="settings-row">
+              <div class="settings-copy">
+                <label class="label" for="s3-secret-key">{{ t.storage.s3SecretKey }}</label>
+              </div>
+              <div class="settings-field">
+                <input id="s3-secret-key" v-model="storageForm.s3SecretKey" type="password" class="input" :placeholder="storageForm.s3SecretKeySet ? t.storage.s3SecretKeyConfigured : t.storage.s3SecretKeyPlaceholder">
+              </div>
+            </div>
 
-        <div class="apple-status" :class="appleStatus.connected ? 'connected' : (appleStatus.configured ? 'configured' : 'not-configured')">
-          <span class="status-icon">
+            <div class="settings-row">
+              <div class="settings-copy">
+                <label class="label" for="s3-public-url">{{ t.storage.s3PublicURL }}</label>
+                <p class="help-text">{{ t.storage.s3PublicURLHelp }}</p>
+              </div>
+              <div class="settings-field">
+                <input id="s3-public-url" v-model="storageForm.s3PublicURL" type="text" class="input" :placeholder="t.storage.s3PublicURLPlaceholder">
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <section class="panel settings-section">
+        <div class="settings-head">
+          <h2 class="section-title">{{ t.apple.title }}</h2>
+          <p class="settings-desc">{{ t.apple.subtitle }}</p>
+        </div>
+
+        <div class="settings-body">
+          <div class="apple-status" :class="appleStatus.connected ? 'connected' : (appleStatus.configured ? 'configured' : 'not-configured')">
             <Icon v-if="appleStatus.connected" name="check-circle" :size="16" />
             <Icon v-else-if="appleStatus.configured" name="alert-triangle" :size="16" />
             <Icon v-else name="x-circle" :size="16" />
-          </span>
-          <span class="status-text">{{ appleStatus.message }}</span>
-          <button type="button" @click="testAppleConnection" :disabled="testingConnection" class="btn-sm btn-test">
-            {{ testingConnection ? t.apple.testing : t.apple.testConnection }}
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label class="label">{{ t.apple.keyId }}</label>
-          <input v-model="appleForm.keyId" type="text" class="input" :placeholder="t.apple.keyIdPlaceholder">
-          <p class="help-text">{{ t.apple.keyIdHelp }}</p>
-        </div>
-
-        <div class="form-group">
-          <label class="label">{{ t.apple.issuerId }}</label>
-          <input v-model="appleForm.issuerId" type="text" class="input" :placeholder="t.apple.issuerIdPlaceholder">
-          <p class="help-text">{{ t.apple.issuerIdHelp }}</p>
-        </div>
-
-        <div class="form-group">
-          <label class="label">{{ t.apple.teamId }}</label>
-          <input v-model="appleForm.teamId" type="text" class="input" :placeholder="t.apple.teamIdPlaceholder">
-          <p class="help-text">{{ t.apple.teamIdHelp }}</p>
-        </div>
-
-        <div class="form-group">
-          <label class="label">{{ t.apple.privateKey }}</label>
-          <div class="file-input-wrapper">
-            <input type="file" accept=".p8,.pem" @change="handlePrivateKeyFile" class="file-input">
-            <span v-if="appleForm.privateKeySet" class="file-status configured">{{ t.apple.privateKeyConfigured }}</span>
-            <span v-else-if="appleForm.privateKey" class="file-status selected">{{ t.apple.privateKeySelected }}</span>
+            <span class="status-text">{{ appleStatus.message }}</span>
+            <button type="button" @click="testAppleConnection" :disabled="testingConnection" class="btn-sm btn-test">
+              {{ testingConnection ? t.apple.testing : t.apple.testConnection }}
+            </button>
           </div>
-          <p class="help-text">{{ t.apple.privateKeyHelp }}</p>
-        </div>
-      </div>
 
-      <!-- Single Save Button -->
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="apple-key-id">{{ t.apple.keyId }}</label>
+              <p class="help-text">{{ t.apple.keyIdHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="apple-key-id" v-model="appleForm.keyId" type="text" class="input" :placeholder="t.apple.keyIdPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="apple-issuer-id">{{ t.apple.issuerId }}</label>
+              <p class="help-text">{{ t.apple.issuerIdHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="apple-issuer-id" v-model="appleForm.issuerId" type="text" class="input" :placeholder="t.apple.issuerIdPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="apple-team-id">{{ t.apple.teamId }}</label>
+              <p class="help-text">{{ t.apple.teamIdHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="apple-team-id" v-model="appleForm.teamId" type="text" class="input" :placeholder="t.apple.teamIdPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="apple-private-key">{{ t.apple.privateKey }}</label>
+              <p class="help-text">{{ t.apple.privateKeyHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <div class="file-input-wrapper">
+                <input id="apple-private-key" type="file" accept=".p8,.pem" @change="handlePrivateKeyFile" class="file-input">
+                <span v-if="appleForm.privateKeySet" class="file-status configured">{{ t.apple.privateKeyConfigured }}</span>
+                <span v-else-if="appleForm.privateKey" class="file-status selected">{{ t.apple.privateKeySelected }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div class="save-bar">
         <div v-if="lastUpdated" class="info-text">
           {{ t.settings.lastUpdated }}: {{ lastUpdated }}
         </div>
-        <button type="submit" :disabled="saving" class="btn-primary btn-save">
+        <button type="submit" :disabled="saving" class="btn-primary">
           {{ saving ? t.settings.saving : t.settings.saveButton }}
         </button>
       </div>
@@ -442,222 +510,95 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.loading-state {
-  text-align: center;
-  padding: 48px;
-  color: var(--text-muted);
+.settings-section {
+  padding: 0;
+  overflow: hidden;
 }
 
-.card {
-  background: var(--bg-card);
-  border-radius: 8px;
-  padding: 24px;
-  border: 1px solid var(--border);
-}
-
-.section-card {
-  margin-top: 20px;
-}
-
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-bright);
-  margin-bottom: 8px;
-}
-
-.card-subtitle {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 24px;
-}
-
-.label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-bright);
-  margin-bottom: 8px;
-}
-
-.label.required::after {
-  content: ' *';
-  color: var(--red);
-}
-
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--bg-deepest);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-bright);
-  font-size: 14px;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--blue);
-}
-
-.textarea {
-  resize: vertical;
-  font-family: inherit;
-}
-
-.help-text {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.error-text {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--red);
-}
-
-.info-text {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-/* Radio Group */
-.radio-group {
-  display: flex;
-  gap: 12px;
-}
-
-.radio-label {
-  flex: 1;
+.settings-head {
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  background: var(--bg-deepest);
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: border-color 0.2s;
+  gap: 2px;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
 }
 
-.radio-label:hover {
-  border-color: var(--border-hover);
+.settings-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
-.radio-label.active {
-  border-color: var(--blue);
-  background: var(--bg-card);
+.settings-body {
+  display: flex;
+  flex-direction: column;
 }
 
-.radio-label input[type="radio"] {
-  display: none;
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-muted);
 }
 
-.radio-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-bright);
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-copy .label {
+  display: block;
   margin-bottom: 4px;
 }
 
-.radio-desc {
-  font-size: 12px;
-  color: var(--text-muted);
+.settings-field {
+  min-width: 0;
 }
 
-/* Apple Status */
 .apple-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 6px;
-  margin-bottom: 24px;
+  gap: var(--space-2);
+  margin: var(--space-4);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .apple-status.connected {
-  background: var(--green-deep);
-  border: 1px solid var(--green-dark);
+  border-color: var(--success);
+  background: var(--success-subtle);
+  color: var(--success);
 }
 
 .apple-status.configured {
-  background: var(--orange-deep);
-  border: 1px solid var(--orange-dark);
-}
-
-.apple-status.not-configured {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  border-color: var(--warning);
+  background: var(--warning-subtle);
+  color: var(--warning);
 }
 
 .status-text {
   flex: 1;
-  font-size: 14px;
-  color: var(--text-bright);
-}
-
-.btn-test {
-  flex-shrink: 0;
+  font-size: 13px;
 }
 
 .file-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
-.file-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--bg-deepest);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-bright);
-  font-size: 14px;
-}
+@media (max-width: 720px) {
+  .settings-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
 
-.file-input::file-selector-button {
-  padding: 6px 12px;
-  background: var(--border);
-  border: none;
-  border-radius: 4px;
-  color: var(--text-bright);
-  font-size: 12px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-
-.file-status {
-  font-size: 13px;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.file-status.configured {
-  background: var(--green-deep);
-  color: var(--green);
-}
-
-.file-status.selected {
-  background: var(--blue-deep);
-  color: var(--blue);
-}
-
-/* Save Bar */
-.save-bar {
-  margin-top: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.btn-save {
-  padding: 12px 32px;
-  font-size: 16px;
+  .apple-status {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
 }
 </style>

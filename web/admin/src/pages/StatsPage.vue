@@ -1,22 +1,24 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.stats.title }}</h1>
-      <p class="page-subtitle">{{ t.stats.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.stats.title }}</h1>
+        <p class="page-subtitle">{{ t.stats.subtitle }}</p>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="filter-bar">
+    <div class="panel">
+      <div class="form-grid">
         <div class="form-group">
           <label class="label">{{ t.apps.name }}</label>
-          <select v-model="selectedProductId" class="input">
+          <select v-model="selectedProductId" class="select">
             <option value="">{{ t.upload.selectProduct }}</option>
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </div>
         <div class="form-group">
           <label class="label">{{ t.apps.platform }}</label>
-          <select v-model="selectedVariantId" class="input" :disabled="!selectedProductId || loadingVariants">
+          <select v-model="selectedVariantId" class="select" :disabled="!selectedProductId || loadingVariants">
             <option value="">{{ loadingVariants ? t.common.loading : t.upload.selectVariant }}</option>
             <option v-for="v in variantOptions" :key="v.id" :value="v.id">
               {{ v.platform }} · {{ v.display_name || v.identifier }}
@@ -28,13 +30,10 @@
       <div v-if="loading" class="loading-state">{{ t.common.loading }}</div>
 
       <div v-else-if="statsData">
-        <div class="app-info">
-          <div class="app-info-name">{{ statsData.variant?.display_name || statsData.product?.name }}</div>
-          <div class="app-info-meta">
-            <span class="badge">{{ statsData.variant?.platform }}</span>
-            <span v-if="statsData.variant?.identifier" class="app-info-id">{{ statsData.variant.identifier }}</span>
-            <span v-if="statsData.product?.name" class="app-info-product">{{ statsData.product.name }}</span>
-          </div>
+        <div class="stats-meta">
+          <strong>{{ statsData.variant?.display_name || statsData.product?.name }}</strong>
+          <span class="mono">{{ statsData.variant?.identifier }}</span>
+          <span>{{ statsData.product?.name }}</span>
         </div>
 
         <div class="table-container">
@@ -51,7 +50,7 @@
               <tr v-for="r in statsData.releases" :key="r.id">
                 <td class="version">{{ r.version }}</td>
                 <td>{{ r.build }}</td>
-                <td><span class="download-count">{{ r.download_count }}</span></td>
+                <td class="text-success">{{ r.download_count }}</td>
                 <td class="date">{{ new Date(r.created_at).toLocaleString() }}</td>
               </tr>
               <tr v-if="!statsData.releases?.length">
@@ -130,74 +129,25 @@ if (initVariantId) {
 </script>
 
 <style scoped>
-.filter-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-muted);
-}
-
-.app-info {
-  padding: 16px;
-  background: var(--bg-deepest);
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.app-info-name {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.app-info-meta {
-  font-size: 14px;
-  color: var(--text-muted);
+.stats-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.app-info-id {
-  font-family: monospace;
-}
-
-.app-info-product {
-  color: var(--text-dim);
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.version {
-  font-weight: 600;
-}
-
-.download-count {
-  color: var(--green);
-  font-weight: 600;
-}
-
-.date {
+  gap: var(--space-3);
+  min-height: 32px;
+  margin-bottom: var(--space-2);
   color: var(--text-muted);
+  font-size: 13px;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text-dim);
+.stats-meta strong {
+  color: var(--text-primary);
 }
 
-@media (max-width: 640px) {
-  .filter-bar {
-    grid-template-columns: 1fr;
-  }
+.stats-meta .mono {
+  font-size: 12px;
+}
+
+.empty-state p {
+  margin: 0;
 }
 </style>
