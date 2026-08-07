@@ -1,22 +1,24 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.events.title }}</h1>
-      <p class="page-subtitle">{{ t.events.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.events.title }}</h1>
+        <p class="page-subtitle">{{ t.events.subtitle }}</p>
+      </div>
     </div>
 
-    <div class="card">
+    <div class="panel">
       <div class="filter-grid">
         <div class="form-group">
           <label class="label">{{ t.apps.name }}</label>
-          <select v-model="selectedProductId" class="input">
+          <select v-model="selectedProductId" class="select">
             <option value="">{{ t.upload.selectProduct }}</option>
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </div>
         <div class="form-group">
           <label class="label">{{ t.apps.platform }}</label>
-          <select v-model="selectedVariantId" class="input" :disabled="!selectedProductId || loadingVariants">
+          <select v-model="selectedVariantId" class="select" :disabled="!selectedProductId || loadingVariants">
             <option value="">{{ loadingVariants ? t.common.loading : t.upload.selectVariant }}</option>
             <option v-for="v in variantOptions" :key="v.id" :value="v.id">
               {{ v.platform }} · {{ v.display_name || v.identifier }}
@@ -25,7 +27,7 @@
         </div>
         <div class="form-group">
           <label class="label">{{ t.events.eventType }}</label>
-          <select v-model="eventType" class="input">
+          <select v-model="eventType" class="select">
             <option value="">{{ t.events.all }}</option>
             <option value="visit">{{ t.events.visit }}</option>
             <option value="click">{{ t.events.click }}</option>
@@ -40,16 +42,17 @@
           <label class="label">{{ t.events.endDate }}</label>
           <input v-model="to" type="date" class="input">
         </div>
+        <div class="form-group filter-action">
+          <button
+            @click="queryFromFirstPage()"
+            :disabled="loading"
+            class="btn-primary"
+          >
+            <Icon name="search" :size="14" />
+            {{ loading ? t.common.loading : t.events.queryButton }}
+          </button>
+        </div>
       </div>
-
-      <button
-        @click="queryFromFirstPage()"
-        :disabled="loading"
-        class="btn-primary btn-query"
-      >
-        <Icon name="search" :size="14" />
-        {{ loading ? t.common.loading : t.events.queryButton }}
-      </button>
 
       <Pagination :total="totalItems" v-model:page="currentPage" :page-size="pageSize" />
 
@@ -68,7 +71,7 @@
           <tbody>
             <tr v-for="e in events" :key="e.ts + e.ip">
               <td class="event-time">{{ new Date(e.ts).toLocaleString() }}</td>
-              <td><span class="badge">{{ e.type }}</span></td>
+              <td><span class="status-dot status-on"><i></i>{{ e.type }}</span></td>
               <td class="event-id">{{ e.variant_id }}</td>
               <td class="event-id">{{ e.release_id }}</td>
               <td class="event-ip">{{ e.ip }}</td>
@@ -175,48 +178,26 @@ if (initVariantId) {
 <style scoped>
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
-.btn-query {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 24px;
-  margin-bottom: 20px;
+.filter-action {
+  justify-content: flex-end;
 }
 
-.table-container {
-  overflow-x: auto;
+.filter-action .btn-primary {
+  align-self: flex-end;
 }
 
-.event-time {
-  color: var(--text-muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
 
-.event-id {
-  font-family: monospace;
-  font-size: 13px;
-  color: var(--text-dim);
-}
-
-.event-ip {
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.event-ua {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-dim);
+  .filter-action {
+    align-items: stretch;
+  }
 }
 </style>

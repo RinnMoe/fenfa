@@ -26,19 +26,20 @@ export default {
 
   login: {
     title: 'Distribution Admin',
-    subtitle: 'Modern Distribution Admin',
+    subtitle: 'Release management console',
     tokenLabel: 'Access Token',
     tokenPlaceholder: 'Enter X-Auth-Token',
     loginButton: 'Login',
     pleaseEnterToken: 'Please enter token',
     loggingIn: 'Logging in...',
     invalidToken: 'Invalid token',
-    loginFailed: 'Login failed'
+    loginFailed: 'Login failed',
+    brand: 'RinnMoe Fenfa'
   },
 
   sidebar: {
-    title: 'Distribution',
-    subtitle: 'Modern Distribution',
+    title: 'Fenfa',
+    subtitle: 'Release Management',
     apps: 'Apps',
     upload: 'Upload',
     stats: 'Statistics',

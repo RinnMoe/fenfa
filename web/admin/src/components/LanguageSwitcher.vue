@@ -32,29 +32,31 @@ function toggleLanguage() {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  background: var(--border);
-  color: var(--text-body);
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .lang-button:hover {
-  background: var(--bg-hover);
-  transform: translateY(-1px);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
 }
 
 .lang-icon {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .lang-text {
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>
 

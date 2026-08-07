@@ -1,22 +1,24 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.exportPage.title }}</h1>
-      <p class="page-subtitle">{{ t.exportPage.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.exportPage.title }}</h1>
+        <p class="page-subtitle">{{ t.exportPage.subtitle }}</p>
+      </div>
     </div>
 
-    <div class="card">
+    <div class="panel">
       <div class="filter-grid">
         <div class="form-group">
           <label class="label">{{ t.apps.name }} {{ t.exportPage.optional }}</label>
-          <select v-model="selectedProductId" class="input">
+          <select v-model="selectedProductId" class="select">
             <option value="">{{ t.exportPage.allProducts }}</option>
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
         </div>
         <div class="form-group">
           <label class="label">{{ t.apps.platform }} {{ t.exportPage.optional }}</label>
-          <select v-model="selectedVariantId" class="input" :disabled="!selectedProductId || loadingVariants">
+          <select v-model="selectedVariantId" class="select" :disabled="!selectedProductId || loadingVariants">
             <option value="">{{ loadingVariants ? t.common.loading : t.exportPage.allVariants }}</option>
             <option v-for="v in variantOptions" :key="v.id" :value="v.id">
               {{ v.platform }} · {{ v.display_name || v.identifier }}
@@ -33,23 +35,38 @@
         </div>
       </div>
 
-      <div class="export-grid">
-        <div @click="handleExport('releases')" class="export-card">
-          <div class="export-icon"><Icon name="package" :size="28" /></div>
-          <div class="export-title">{{ t.exportPage.releases }}</div>
-          <div class="export-desc">{{ t.exportPage.releasesDesc }}</div>
+      <div class="export-list">
+        <div class="export-row">
+          <div>
+            <div class="export-title">{{ t.exportPage.releases }}</div>
+            <div class="export-desc">{{ t.exportPage.releasesDesc }}</div>
+          </div>
+          <button class="btn-secondary" @click="handleExport('releases')">
+            <Icon name="download" :size="14" />
+            {{ t.common.export }}
+          </button>
         </div>
 
-        <div @click="handleExport('events')" class="export-card">
-          <div class="export-icon"><Icon name="clipboard" :size="28" /></div>
-          <div class="export-title">{{ t.exportPage.events }}</div>
-          <div class="export-desc">{{ t.exportPage.eventsDesc }}</div>
+        <div class="export-row">
+          <div>
+            <div class="export-title">{{ t.exportPage.events }}</div>
+            <div class="export-desc">{{ t.exportPage.eventsDesc }}</div>
+          </div>
+          <button class="btn-secondary" @click="handleExport('events')">
+            <Icon name="download" :size="14" />
+            {{ t.common.export }}
+          </button>
         </div>
 
-        <div @click="handleExport('ios_devices')" class="export-card">
-          <div class="export-icon"><Icon name="smartphone" :size="28" /></div>
-          <div class="export-title">{{ t.exportPage.iosDevices }}</div>
-          <div class="export-desc">{{ t.exportPage.iosDevicesDesc }}</div>
+        <div class="export-row">
+          <div>
+            <div class="export-title">{{ t.exportPage.iosDevices }}</div>
+            <div class="export-desc">{{ t.exportPage.iosDevicesDesc }}</div>
+          </div>
+          <button class="btn-secondary" @click="handleExport('ios_devices')">
+            <Icon name="download" :size="14" />
+            {{ t.common.export }}
+          </button>
         </div>
       </div>
     </div>
@@ -107,45 +124,44 @@ async function handleExport(type: string) {
 <style scoped>
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
-.export-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+.export-list {
+  border-top: 1px solid var(--border);
 }
 
-.export-card {
-  background: var(--bg-deepest);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.export-card:hover {
-  border-color: var(--purple-dark);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2);
-}
-
-.export-icon {
-  margin-bottom: 8px;
-  color: var(--text-muted);
+.export-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-muted);
 }
 
 .export-title {
+  color: var(--text-primary);
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 4px;
 }
 
 .export-desc {
-  font-size: 13px;
+  margin-top: 2px;
   color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .export-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>

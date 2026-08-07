@@ -1,26 +1,41 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <div class="header-top">
-        <h1 class="login-title">{{ t.login.title }}</h1>
+      <div class="login-top">
+        <div class="login-brand">
+          <span class="brand-mark">F</span>
+          <span>Fenfa</span>
+        </div>
         <LanguageSwitcher />
       </div>
+
+      <h1 class="login-title">{{ t.login.title }}</h1>
       <p class="login-subtitle">{{ t.login.subtitle }}</p>
 
-      <div class="form-group">
-        <label class="label">{{ t.login.tokenLabel }}</label>
-        <input
-          v-model="localToken"
-          type="password"
-          :placeholder="t.login.tokenPlaceholder"
-          @keyup.enter="handleLogin"
-          class="input"
-        >
-      </div>
+      <form class="login-form" @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label class="label" for="admin-token">{{ t.login.tokenLabel }}</label>
+          <input
+            id="admin-token"
+            v-model="localToken"
+            type="password"
+            :placeholder="t.login.tokenPlaceholder"
+            autocomplete="current-password"
+            class="input"
+          >
+        </div>
 
-      <button @click="handleLogin" class="btn-primary btn-full" :disabled="isLoggingIn">
-        {{ isLoggingIn ? (t.login.loggingIn || 'Logging in...') : t.login.loginButton }}
-      </button>
+        <div v-if="errorMessage" class="error-message" role="alert">
+          <Icon name="alert" :size="14" />
+          {{ errorMessage }}
+        </div>
+
+        <button type="submit" class="btn-primary btn-full" :disabled="isLoggingIn">
+          {{ isLoggingIn ? t.login.loggingIn : t.login.loginButton }}
+        </button>
+      </form>
+
+      <p class="login-footer">{{ t.login.brand }}</p>
     </div>
   </div>
 </template>
@@ -30,6 +45,7 @@ import { ref } from 'vue'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import Icon from '../components/Icon.vue'
 
 const emit = defineEmits<{
   login: [token: string]
@@ -39,14 +55,15 @@ const { t } = useI18n()
 const { token } = useAuth()
 const localToken = ref(token.value)
 const isLoggingIn = ref(false)
+const errorMessage = ref('')
 
 async function handleLogin() {
+  errorMessage.value = ''
   if (!localToken.value.trim()) {
-    alert(t.value.login.pleaseEnterToken)
+    errorMessage.value = t.value.login.pleaseEnterToken
     return
   }
 
-  // Verify token by calling a protected API
   isLoggingIn.value = true
   try {
     const res = await fetch('/admin/api/products?q=', {
@@ -54,19 +71,18 @@ async function handleLogin() {
     })
 
     if (res.status === 401 || res.status === 403) {
-      alert(t.value.login.invalidToken || 'Invalid token')
+      errorMessage.value = t.value.login.invalidToken
       return
     }
 
     if (!res.ok) {
-      alert(t.value.login.loginFailed || 'Login failed')
+      errorMessage.value = t.value.login.loginFailed
       return
     }
 
-    // Token is valid, proceed with login
     emit('login', localToken.value)
   } catch (e) {
-    alert(t.value.login.loginFailed || 'Login failed: ' + e)
+    errorMessage.value = t.value.login.loginFailed + ': ' + e
   } finally {
     isLoggingIn.value = false
   }
@@ -79,43 +95,78 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+  padding: var(--space-4);
+  background: var(--canvas);
 }
 
 .login-card {
-  background: var(--bg-card);
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: var(--modal-shadow);
-  width: 100%;
-  max-width: 400px;
+  width: 360px;
+  max-width: 100%;
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-popover);
 }
 
-.header-top {
+.login-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
-.login-title {
-  margin: 0;
-  font-size: 28px;
-  color: var(--text-bright);
-}
-
-.login-subtitle {
-  margin: 0 0 32px 0;
-  text-align: center;
-  color: var(--text-muted);
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
   font-size: 14px;
-}
-
-.btn-full {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
   font-weight: 600;
 }
 
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-title {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.login-subtitle {
+  margin: 0 0 var(--space-5);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.login-form .btn-full {
+  height: var(--control-height);
+}
+
+.login-footer {
+  margin: var(--space-5) 0 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-align: center;
+}
 </style>

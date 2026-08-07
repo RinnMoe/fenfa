@@ -1,15 +1,17 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ t.upload.title }}</h1>
-      <p class="page-subtitle">{{ t.upload.subtitle }}</p>
+      <div>
+        <h1 class="page-title">{{ t.upload.title }}</h1>
+        <p class="page-subtitle">{{ t.upload.subtitle }}</p>
+      </div>
     </div>
 
-    <div class="card selectors-card">
-      <div class="selectors-grid">
+    <div class="panel">
+      <div class="form-grid">
         <div class="form-group">
-          <label class="label">{{ t.apps.name }}</label>
-          <select v-model="selectedProductId" class="input">
+          <label class="label" for="upload-product">{{ t.apps.name }}</label>
+          <select id="upload-product" v-model="selectedProductId" class="select">
             <option value="">{{ t.upload.selectProduct }}</option>
             <option v-for="product in products" :key="product.id" :value="product.id">
               {{ product.name }}
@@ -18,8 +20,8 @@
         </div>
 
         <div class="form-group">
-          <label class="label">{{ t.apps.platform }}</label>
-          <select v-model="selectedVariantId" class="input" :disabled="!selectedProductId || loadingVariants">
+          <label class="label" for="upload-variant">{{ t.apps.platform }}</label>
+          <select id="upload-variant" v-model="selectedVariantId" class="select" :disabled="!selectedProductId || loadingVariants">
             <option value="">{{ loadingVariants ? t.common.loading : t.upload.selectVariant }}</option>
             <option v-for="variant in variantOptions" :key="variant.id" :value="variant.id">
               {{ variant.platform }} · {{ variant.identifier }}
@@ -29,32 +31,32 @@
       </div>
     </div>
 
-    <!-- Not ready: prompt user -->
-    <div v-if="!selectedVariant" class="card upload-prompt">
+    <div v-if="!selectedVariant" class="panel empty-state">
       <p v-if="!selectedProductId">{{ t.upload.selectProductFirst }}</p>
       <p v-else-if="loadingVariants">{{ t.common.loading }}</p>
       <p v-else-if="variantOptions.length === 0">{{ t.upload.noVariantsHint }}</p>
       <p v-else>{{ t.upload.selectVariantFirst }}</p>
     </div>
 
-    <!-- Ready: show upload area -->
     <template v-else>
       <div v-if="isMobilePlatform" class="mode-selector">
         <button
+          type="button"
           @click="uploadMode = 'smart'"
           class="mode-btn"
           :class="{ active: uploadMode === 'smart' }"
         >
-          <div class="mode-title">{{ t.upload.smartMode }}</div>
-          <div class="mode-desc">{{ t.upload.smartModeDesc }}</div>
+          <span class="mode-title">{{ t.upload.smartMode }}</span>
+          <span class="mode-desc">{{ t.upload.smartModeDesc }}</span>
         </button>
         <button
+          type="button"
           @click="uploadMode = 'manual'"
           class="mode-btn"
           :class="{ active: uploadMode === 'manual' }"
         >
-          <div class="mode-title">{{ t.upload.manualMode }}</div>
-          <div class="mode-desc">{{ t.upload.manualModeDesc }}</div>
+          <span class="mode-title">{{ t.upload.manualMode }}</span>
+          <span class="mode-desc">{{ t.upload.manualModeDesc }}</span>
         </button>
       </div>
 
@@ -66,7 +68,7 @@
         @success="fetchProducts"
       />
 
-      <div v-else class="card">
+      <div v-else class="panel">
         <div class="form-grid">
           <div class="form-group">
             <label class="label">{{ t.upload.versionRequired }}</label>
@@ -89,25 +91,25 @@
           </div>
         </div>
 
-        <div class="form-group full-width">
+        <div class="form-group full-width" style="margin-top: var(--space-3)">
           <label class="label">{{ t.upload.changelog }}</label>
-          <textarea v-model="form.changelog" :placeholder="t.upload.changelogPlaceholder" class="input textarea" rows="3"></textarea>
+          <textarea v-model="form.changelog" :placeholder="t.upload.changelogPlaceholder" class="textarea" rows="3"></textarea>
         </div>
 
-        <div class="form-group full-width">
-          <label class="label checkbox-label">
+        <div class="form-group full-width" style="margin-top: var(--space-3)">
+          <label class="checkbox-label">
             <input v-model="form.force_update" type="checkbox">
             {{ t.upload.forceUpdate }}
           </label>
         </div>
 
-        <div class="form-group full-width">
+        <div class="form-group full-width" style="margin-top: var(--space-3)">
           <label class="label">{{ t.upload.fileRequired }}</label>
-          <input ref="fileInput" type="file" :accept="acceptTypes" class="input file-input">
+          <input ref="fileInput" type="file" :accept="acceptTypes" class="file-input">
         </div>
 
-        <div class="upload-actions">
-          <button @click="doUpload" :disabled="uploading" class="btn-primary btn-upload">
+        <div class="form-actions">
+          <button @click="doUpload" :disabled="uploading" class="btn-primary">
             {{ uploading ? t.upload.uploading : t.upload.uploadButton }}
           </button>
         </div>
@@ -120,7 +122,7 @@
               <div><strong>{{ t.upload.directDownload }}:</strong> <a :href="response.data.urls.download" target="_blank">{{ response.data.urls.download }}</a></div>
             </div>
           </div>
-          <div v-else class="error-message">
+          <div v-else>
             {{ t.upload.uploadFailed }}: {{ response.error?.message || t.upload.unknownError }}
           </div>
         </div>
@@ -257,88 +259,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.selectors-card {
-  margin-bottom: 20px;
+.panel + .panel,
+.panel + .mode-selector {
+  margin-top: var(--space-3);
 }
 
-.selectors-grid,
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+.mode-selector + .panel {
+  margin-top: var(--space-3);
 }
 
-.mode-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.mode-btn {
-  background: var(--bg-card);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.mode-btn.active {
-  border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
-}
-
-.mode-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-bright);
-}
-
-.mode-desc {
-  margin-top: 6px;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.upload-prompt {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 48px 24px;
-}
-
-.full-width {
-  margin-top: 20px;
-}
-
-.checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.textarea {
-  resize: vertical;
-  font-family: inherit;
-}
-
-.file-input {
-  padding: 10px;
-}
-
-.upload-actions {
-  margin-top: 24px;
-}
-
-.btn-upload {
-  padding: 14px 32px;
-  font-size: 16px;
-}
-
-@media (max-width: 768px) {
-  .mode-selector {
-    grid-template-columns: 1fr;
-  }
+.panel.empty-state p {
+  margin: 0;
 }
 </style>

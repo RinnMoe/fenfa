@@ -11,36 +11,28 @@ const translations = {
       title: '页面暂时不可用',
       loadFailed: '加载产品信息失败'
     },
-    hero: {
-      productCenter: '多平台分发中心',
-      legacyPage: '兼容分发页',
-      subtitle: '同一页面展示全部可用平台版本，按你的设备优先推荐最合适的下载项。',
-      recommended: '推荐'
-    },
     actions: {
       install: '安装',
       installing: '正在安装...',
       download: '下载',
+      downloadAndroid: '下载 Android 版',
+      downloadWindows: '下载 Windows 版',
+      downloadMacos: '下载 macOS 版',
+      downloadLinux: '下载 Linux 版',
       bindDevice: '绑定设备',
-      scan: '扫码访问',
+      scan: '手机扫码安装',
       unavailable: '暂不可用'
     },
-    variant: {
-      identifier: '标识',
-      version: '版本',
-      build: '构建',
-      minOS: '最低系统',
-      updatedAt: '更新时间',
-      allVersions: '可用版本',
-      iosHint: 'iOS 首次安装前需要先绑定当前设备 UDID。'
+    footer: {
+      brandBy: '由',
+      brandService: '提供分发服务'
     },
-    time: {
-      justNow: '刚刚',
-      minutesAgo: '分钟前',
-      hoursAgo: '小时前',
-      daysAgo: '天前',
-      weeksAgo: '周前',
-      monthsAgo: '个月前'
+    variant: {
+      otherVersions: '其他版本',
+      hideVersions: '收起版本',
+      changelogTitle: '更新说明',
+      current: '当前版本',
+      iosHint: 'iOS 首次安装前需要先绑定当前设备 UDID。'
     }
   },
   en: {
@@ -49,36 +41,28 @@ const translations = {
       title: 'This page is temporarily unavailable',
       loadFailed: 'Failed to load product information'
     },
-    hero: {
-      productCenter: 'Multi-platform Distribution',
-      legacyPage: 'Compatibility Page',
-      subtitle: 'All platform builds live on one page, with a recommendation based on the current device.',
-      recommended: 'Recommended'
-    },
     actions: {
       install: 'Install',
       installing: 'Installing...',
       download: 'Download',
+      downloadAndroid: 'Download Android',
+      downloadWindows: 'Download Windows',
+      downloadMacos: 'Download macOS',
+      downloadLinux: 'Download Linux',
       bindDevice: 'Bind Device',
-      scan: 'Scan QR Code',
+      scan: 'Scan with phone',
       unavailable: 'Unavailable'
     },
-    variant: {
-      identifier: 'Identifier',
-      version: 'Version',
-      build: 'Build',
-      minOS: 'Minimum OS',
-      updatedAt: 'Updated',
-      allVersions: 'Available Versions',
-      iosHint: 'On iOS, the device must be registered before the first install.'
+    footer: {
+      brandBy: 'Distribution service by',
+      brandService: ''
     },
-    time: {
-      justNow: 'Just now',
-      minutesAgo: 'min ago',
-      hoursAgo: 'h ago',
-      daysAgo: 'd ago',
-      weeksAgo: 'w ago',
-      monthsAgo: 'mo ago'
+    variant: {
+      otherVersions: 'Other versions',
+      hideVersions: 'Hide versions',
+      changelogTitle: 'Changelog',
+      current: 'Current',
+      iosHint: 'On iOS, the device must be registered before the first install.'
     }
   }
 }

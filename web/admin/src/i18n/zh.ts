@@ -26,19 +26,20 @@ export default {
 
   login: {
     title: '分发管理后台',
-    subtitle: 'Modern Distribution Admin',
+    subtitle: '版本发布管理控制台',
     tokenLabel: '访问令牌 (Token)',
     tokenPlaceholder: '请输入 X-Auth-Token',
     loginButton: '登录',
     pleaseEnterToken: '请输入 Token',
     loggingIn: '登录中...',
     invalidToken: 'Token 无效',
-    loginFailed: '登录失败'
+    loginFailed: '登录失败',
+    brand: 'RinnMoe Fenfa'
   },
 
   sidebar: {
-    title: '分发管理',
-    subtitle: 'Modern Distribution',
+    title: 'Fenfa',
+    subtitle: '版本发布管理',
     apps: '应用列表',
     upload: '上传构建',
     stats: '下载统计',

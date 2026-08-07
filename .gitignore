@@ -61,3 +61,6 @@ docs/dev/
 # Build output binaries (root only, not cmd/server/)
 /server
 /fenfa
+
+# Playwright CLI artifacts
+.playwright-cli/
