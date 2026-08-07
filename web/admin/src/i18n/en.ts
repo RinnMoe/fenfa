@@ -9,6 +9,9 @@ export default {
     logout: 'Logout',
     login: 'Login',
     cancel: 'Cancel',
+    close: 'Close',
+    save: 'Save',
+    edit: 'Edit',
     confirm: 'Confirm',
     success: 'Success',
     failed: 'Failed',
@@ -63,6 +66,7 @@ export default {
     actions: 'Actions',
     viewStats: 'View Stats',
     viewEvents: 'View Events',
+    announcements: 'Announcements',
     uploadNewVersion: 'Upload New Version',
     viewDistribution: 'View Distribution',
     distributionDesc: 'Generate accessible links by primary and secondary domains for this app.',
@@ -126,7 +130,10 @@ export default {
     deleteReleaseConfirm: 'Are you sure you want to delete release {version} (Build {build})? This action cannot be undone.',
     deleteProductFailed: 'Failed to delete product',
     deleteVariantFailed: 'Failed to delete variant',
-    deleteReleaseFailed: 'Failed to delete release'
+    deleteReleaseFailed: 'Failed to delete release',
+    forceUpdate: 'Force Update',
+    updateReleaseSuccess: 'Release updated successfully',
+    updateReleaseFailed: 'Failed to update release'
   },
 
   uploadModal: {
@@ -144,6 +151,7 @@ export default {
     minOSPlaceholder: 'e.g., iOS 14.0 or Android 8.0',
     changelog: 'Changelog',
     changelogPlaceholder: 'What\'s new in this version...',
+    forceUpdate: 'Force Update',
     fileRequired: 'App File *',
     dragDropText: 'Drag & drop file here',
     orClickToSelect: 'or click to select',
@@ -193,6 +201,7 @@ export default {
     minOSPlaceholder: '14.0',
     changelog: 'Changelog',
     changelogPlaceholder: 'What\'s new in this version...',
+    forceUpdate: 'Force Update',
     file: 'App File',
     fileRequired: 'App File *',
     uploadButton: 'Start Upload',
@@ -228,6 +237,7 @@ export default {
     channelPlaceholder: 'e.g., internal, beta, release',
     changelog: 'Changelog',
     changelogPlaceholder: 'What\'s new in this version...',
+    forceUpdate: 'Force Update',
     uploadButton: 'Confirm Upload',
     uploading: 'Uploading...',
     uploadSuccess: 'Upload Successful',
@@ -443,5 +453,32 @@ export default {
     testing: 'Testing...',
     connectionSuccess: 'Apple API connection successful',
     connectionFailed: 'Apple API connection failed'
+  },
+
+  announcements: {
+    title: 'Announcements',
+    product: 'Product',
+    create: 'Create Announcement',
+    title: 'Title',
+    titlePlaceholder: 'Announcement title',
+    content: 'Content',
+    contentPlaceholder: 'Announcement content',
+    enabled: 'Enabled',
+    enabledOn: 'Enabled',
+    enabledOff: 'Disabled',
+    startAt: 'Start At',
+    endAt: 'End At',
+    createdAt: 'Created At',
+    empty: 'No announcements',
+    loadFailed: 'Failed to load announcements',
+    saveSuccess: 'Announcement saved successfully',
+    saveFailed: 'Failed to save announcement',
+    deleteTitle: 'Delete Announcement',
+    deleteConfirm: 'Are you sure you want to delete this announcement?',
+    deleteFailed: 'Failed to delete announcement',
+    required: 'Title and content are required',
+    invalidRange: 'Start time must be before end time',
+    enable: 'Enable',
+    disable: 'Disable'
   }
 }

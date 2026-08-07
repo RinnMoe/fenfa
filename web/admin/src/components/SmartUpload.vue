@@ -109,6 +109,13 @@
           <label class="label">{{ t.smartUpload.changelog }}</label>
           <textarea v-model="form.changelog" :placeholder="t.smartUpload.changelogPlaceholder" class="input textarea" rows="3"></textarea>
         </div>
+
+        <div class="form-group checkbox-group">
+          <label class="label checkbox-label">
+            <input v-model="form.force_update" type="checkbox">
+            {{ t.smartUpload.forceUpdate }}
+          </label>
+        </div>
       </div>
 
       <div class="step-actions">
@@ -192,7 +199,8 @@ const uploadResult = ref<any>(null)
 
 const form = reactive({
   channel: 'internal',
-  changelog: ''
+  changelog: '',
+  force_update: false
 })
 
 function triggerFileInput() {
@@ -320,6 +328,9 @@ async function handleUpload() {
   if (form.changelog) {
     fd.set('changelog', form.changelog)
   }
+  if (form.force_update) {
+    fd.set('force_update', 'true')
+  }
   if (appInfo.value.icon_base64) {
     fd.set('icon_base64', appInfo.value.icon_base64)
   }
@@ -382,6 +393,7 @@ function resetForm() {
   appInfo.value = null
   form.channel = 'internal'
   form.changelog = ''
+  form.force_update = false
   parseProgress.value = 0
   uploadProgress.value = 0
   uploadResult.value = null
@@ -559,6 +571,17 @@ function resetForm() {
   font-weight: 600;
   color: var(--text-bright);
   margin-bottom: 16px;
+}
+
+.checkbox-group {
+  margin-top: 12px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .form-row {

@@ -159,6 +159,7 @@ func releasePayload(productKey, platform string, domains publicDomains, release 
 		"created_at":     release.CreatedAt,
 		"download_count": release.DownloadCount,
 		"channel":        release.Channel,
+		"force_update":   release.ForceUpdate,
 		"min_os":         release.MinOS,
 		"changelog":      release.Changelog,
 		"actions":        releaseActions(productKey, platform, domains, release.ID),

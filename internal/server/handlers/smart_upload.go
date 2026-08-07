@@ -171,6 +171,7 @@ func SmartUpload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 		if v := c.PostForm("changelog"); v != "" {
 			p.Changelog = v
 		}
+		p.ForceUpdate = formBool(c.PostForm("force_update"))
 
 		// Step 5: Build descriptive filename
 		// Format: {original_basename}_{YYYYMMDD_HHMMSS}_{version}.{ext}

@@ -152,7 +152,8 @@ func AppDetailJSON(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 			relData := gin.H{
 				"id": r.ID, "version": r.Version, "build": r.Build, "created_at": r.CreatedAt,
 				"download_count": r.DownloadCount, "channel": r.Channel,
-				"min_os": r.MinOS, "changelog": r.Changelog,
+				"force_update": r.ForceUpdate,
+				"min_os":       r.MinOS, "changelog": r.Changelog,
 				"urls": gin.H{
 					"download":     downloadBase + "/d/" + r.ID,
 					"ios_manifest": relManifestURL,
