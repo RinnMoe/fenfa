@@ -44,6 +44,7 @@ config.json
 .env
 .env.local
 .env.*.local
+deploy/r2-test.env
 
 # Docker artifacts
 *.tar
