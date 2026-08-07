@@ -13,6 +13,8 @@ RUN apk add --no-cache build-base sqlite-dev
 ENV CGO_ENABLED=1
 WORKDIR /src
 COPY . .
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
 # Bring in the built frontend artifacts from node-builder stage
 COPY --from=node-builder /src/internal/web/dist /src/internal/web/dist
 # Build server binary
