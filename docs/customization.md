@@ -83,7 +83,7 @@ No manual SQL or database reset required.
 ## Docker
 
 ```bash
-docker build -t ghcr.io/rinnmoe/fenfa:v0.1.0 .
+docker build -t ghcr.io/rinnmoe/fenfa:0.1.0 .
 ```
 
 Production deployment uses 1Panel with reverse proxy. See [DEPLOY_1PANEL.md](DEPLOY_1PANEL.md).

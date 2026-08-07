@@ -35,14 +35,14 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 ### Docker
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.1.0
+docker pull ghcr.io/rinnmoe/fenfa:0.1.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_TOKEN=your-admin-token \
   -e FENFA_UPLOAD_TOKEN=your-upload-token \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.1.0
+  ghcr.io/rinnmoe/fenfa:0.1.0
 ```
 
 Visit `http://localhost:8000/admin`.

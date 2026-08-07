@@ -1,6 +1,6 @@
 services:
   fenfa:
-    image: ghcr.io/rinnmoe/fenfa:v0.1.0
+    image: ghcr.io/rinnmoe/fenfa:0.1.0
     container_name: fenfa
     restart: unless-stopped
     ports:

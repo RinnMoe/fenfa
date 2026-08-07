@@ -35,14 +35,14 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 ### Docker
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.1.0
+docker pull ghcr.io/rinnmoe/fenfa:0.1.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_TOKEN=你的管理密钥 \
   -e FENFA_UPLOAD_TOKEN=你的上传密钥 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.1.0
+  ghcr.io/rinnmoe/fenfa:0.1.0
 ```
 
 访问 `http://localhost:8000/admin`。
