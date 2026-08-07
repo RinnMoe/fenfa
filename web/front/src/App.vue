@@ -29,7 +29,6 @@
             :variant="activeVariant"
             :release="activeRelease"
             :product-name="productData.product.name"
-            :format-time="formatTime"
           />
 
           <ReleaseActions
@@ -44,7 +43,6 @@
             v-if="activeVariant"
             :releases="activeVariant.releases"
             :selected-release-id="activeRelease?.id || ''"
-            :format-time="formatTime"
             @select="selectRelease"
           />
         </main>
@@ -58,7 +56,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from './i18n'
-import { formatTime, useProduct } from './composables/useProduct'
+import { useProduct } from './composables/useProduct'
 import { useTracking } from './composables/useTracking'
 import { useUDID } from './composables/useUDID'
 import ProductHeader from './components/ProductHeader.vue'

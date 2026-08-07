@@ -27,12 +27,12 @@
 
 <script setup lang="ts">
 import { useI18n } from '../i18n'
+import { formatTime as formatTimeRaw } from '../composables/useProduct'
 import type { ReleaseItem } from '../types'
 
 defineProps<{
   releases: ReleaseItem[]
   selectedReleaseID: string
-  formatTime: (value: string, t: any) => string
 }>()
 
 defineEmits<{
@@ -40,4 +40,8 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+function formatTime(value: string) {
+  return formatTimeRaw(value, t.value)
+}
 </script>

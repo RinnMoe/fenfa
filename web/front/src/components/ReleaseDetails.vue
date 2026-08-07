@@ -40,14 +40,18 @@
 <script setup lang="ts">
 import { useI18n } from '../i18n'
 import { platformLabel } from '../composables/useProduct'
+import { formatTime as formatTimeRaw } from '../composables/useProduct'
 import type { ReleaseItem, VariantItem } from '../types'
 
 defineProps<{
   variant: VariantItem
   release: ReleaseItem | null
   productName: string
-  formatTime: (value: string, t: any) => string
 }>()
 
 const { t } = useI18n()
+
+function formatTime(value: string) {
+  return formatTimeRaw(value, t.value)
+}
 </script>

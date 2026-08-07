@@ -203,4 +203,55 @@ const menuItems = computed(() => [
   font-size: 12px;
 }
 
+@media (max-width: 767px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: sticky;
+    top: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .brand-copy {
+    display: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 4px 8px;
+    overflow-x: auto;
+  }
+
+  .nav-item {
+    height: 32px;
+    flex: 0 0 auto;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px 8px 8px;
+  }
+
+  .footer-controls {
+    margin-bottom: 0;
+  }
+
+  .sidebar-footer .btn-full {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
 </style>
