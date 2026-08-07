@@ -35,7 +35,7 @@
 .product-page {
   width: min(100% - 32px, 640px);
   margin: 0 auto;
-  padding: 48px 0 32px;
+  padding: 48px 0 72px;
 }
 
 .product-header {
@@ -132,18 +132,49 @@
 }
 
 .page-footer {
-  margin-top: 40px;
-  padding-top: 16px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
   border-top: 1px solid var(--border-muted);
+  background: var(--canvas);
   color: var(--text-faint);
   font-size: 12px;
   text-align: center;
 }
 
+.footer-text {
+  color: var(--text-faint);
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.brand-link:hover {
+  color: var(--text-primary);
+}
+
+.github-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .product-page {
     width: min(100% - 24px, 640px);
-    padding: 28px 0 24px;
+    padding: 28px 0 64px;
   }
 
   .product-header {

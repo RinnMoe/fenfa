@@ -64,11 +64,16 @@ export function useProduct() {
     const selectedReleaseID = new URLSearchParams(location.search).get('r')
     const endpoint = `/api/products/${resourceID}`
     const res = await fetch(endpoint + (selectedReleaseID ? `?r=${encodeURIComponent(selectedReleaseID)}` : ''))
-    const payload = await res.json()
+    let payload: any = null
+    try {
+      payload = await res.json()
+    } catch {
+      payload = null
+    }
 
-    if (!res.ok || !payload.ok) {
+    if (!res.ok || !payload?.ok) {
       loading.value = false
-      error.value = payload.error?.message || errorMessage
+      error.value = payload?.error?.message || errorMessage
       return
     }
 

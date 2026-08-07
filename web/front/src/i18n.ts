@@ -24,7 +24,8 @@ const translations = {
       unavailable: '暂不可用'
     },
     footer: {
-      branding: '由 Fenfa 提供分发'
+      brandBy: '由',
+      brandService: '提供分发服务'
     },
     variant: {
       otherVersions: '其他版本',
@@ -53,7 +54,8 @@ const translations = {
       unavailable: 'Unavailable'
     },
     footer: {
-      branding: 'Distribution by Fenfa'
+      brandBy: 'Distribution service by',
+      brandService: ''
     },
     variant: {
       otherVersions: 'Other versions',
