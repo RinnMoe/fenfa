@@ -25,6 +25,9 @@ const translations = {
       scan: '扫码访问',
       unavailable: '暂不可用'
     },
+    common: {
+      action: '操作'
+    },
     variant: {
       identifier: '标识',
       version: '版本',
@@ -32,6 +35,9 @@ const translations = {
       minOS: '最低系统',
       updatedAt: '更新时间',
       allVersions: '可用版本',
+      changelogTitle: '更新说明',
+      current: '当前版本',
+      select: '选择',
       iosHint: 'iOS 首次安装前需要先绑定当前设备 UDID。'
     },
     time: {
@@ -63,6 +69,9 @@ const translations = {
       scan: 'Scan QR Code',
       unavailable: 'Unavailable'
     },
+    common: {
+      action: 'Action'
+    },
     variant: {
       identifier: 'Identifier',
       version: 'Version',
@@ -70,6 +79,9 @@ const translations = {
       minOS: 'Minimum OS',
       updatedAt: 'Updated',
       allVersions: 'Available Versions',
+      changelogTitle: 'Changelog',
+      current: 'Current',
+      select: 'Select',
       iosHint: 'On iOS, the device must be registered before the first install.'
     },
     time: {
