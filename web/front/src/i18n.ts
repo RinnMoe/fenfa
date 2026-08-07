@@ -11,6 +11,12 @@ const translations = {
       title: '页面暂时不可用',
       loadFailed: '加载产品信息失败'
     },
+    intro: {
+      tagline: '自托管应用分发平台',
+      description: '面向 iOS、Android、macOS、Windows 与 Linux 的多平台应用分发与版本管理平台，支持智能上传、iOS UDID 绑定、强制更新与产品公告。',
+      features: ['多平台分发', '智能上传', 'iOS UDID 绑定', '强制更新', '产品公告', 'S3 / R2 存储'],
+      github: '查看 GitHub'
+    },
     actions: {
       install: '安装',
       installing: '正在安装...',
@@ -40,6 +46,12 @@ const translations = {
     error: {
       title: 'This page is temporarily unavailable',
       loadFailed: 'Failed to load product information'
+    },
+    intro: {
+      tagline: 'Self-hosted app distribution platform',
+      description: 'A multi-platform app distribution and release management platform for iOS, Android, macOS, Windows and Linux, with smart upload, iOS UDID binding, force updates and product announcements.',
+      features: ['Multi-platform', 'Smart upload', 'iOS UDID binding', 'Force updates', 'Announcements', 'S3 / R2 storage'],
+      github: 'View on GitHub'
     },
     actions: {
       install: 'Install',

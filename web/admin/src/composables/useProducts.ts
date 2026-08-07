@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
+import { adminURL } from '../api'
 
 const products = ref<any[]>([])
 const loadingProducts = ref(false)
@@ -14,7 +15,7 @@ export function useProducts() {
     try {
       const p = new URLSearchParams()
       if (productQuery.value) p.set('q', productQuery.value)
-      const res = await fetch('/admin/api/products' + (p.toString() ? ('?' + p.toString()) : ''), {
+      const res = await fetch(adminURL('api/products') + (p.toString() ? ('?' + p.toString()) : ''), {
         headers: { 'X-Auth-Token': token.value }
       })
       if (handleAuthError(res)) return

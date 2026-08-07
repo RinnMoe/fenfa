@@ -106,6 +106,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import Pagination from '../components/Pagination.vue'
+import { adminURL } from '../api'
 
 const { token, handleAuthError: onAuthError } = useAuth()
 
@@ -143,7 +144,7 @@ const someSelected = computed(() => selectedIds.value.length > 0 && !allSelected
 
 async function fetchIOSVariants() {
   try {
-    const r = await fetch('/admin/api/ios_variants', { headers: { 'X-Auth-Token': token.value } })
+    const r = await fetch(adminURL('api/ios_variants'), { headers: { 'X-Auth-Token': token.value } })
     if (onAuthError(r)) return
     const j = await r.json()
     iosVariants.value = j?.data?.items || []
@@ -166,7 +167,7 @@ function params() {
 async function fetchList() {
   loading.value = true
   try {
-    const url = '/admin/api/ios_devices?' + params().toString()
+    const url = adminURL('api/ios_devices?') + params().toString()
     const r = await fetch(url, { headers: { 'X-Auth-Token': token.value } })
 
     if (onAuthError(r)) return
@@ -182,7 +183,7 @@ async function fetchList() {
 }
 
 async function exportCsv() {
-  const path = '/admin/exports/ios_devices.csv'
+  const path = adminURL('exports/ios_devices.csv')
   const url = path + '?' + params().toString()
   try {
     const r = await fetch(url, { headers: { 'X-Auth-Token': token.value } })
@@ -211,7 +212,7 @@ function formatTs(v: string | number | Date | null) {
 // Check if Apple API is configured
 async function checkAppleStatus() {
   try {
-    const r = await fetch('/admin/api/apple/status', { headers: { 'X-Auth-Token': token.value } })
+    const r = await fetch(adminURL('api/apple/status'), { headers: { 'X-Auth-Token': token.value } })
     if (!r.ok) return
     const j = await r.json()
     appleConfigured.value = j?.data?.configured || false
@@ -246,7 +247,7 @@ async function registerDevice(device: any) {
   successMessage.value = ''
 
   try {
-    const r = await fetch(`/admin/api/devices/${device.id}/register-apple`, {
+    const r = await fetch(adminURL(`api/devices/${device.id}/register-apple`), {
       method: 'POST',
       headers: { 'X-Auth-Token': token.value }
     })
@@ -278,7 +279,7 @@ async function batchRegister() {
   successMessage.value = ''
 
   try {
-    const r = await fetch('/admin/api/devices/register-apple', {
+    const r = await fetch(adminURL('api/devices/register-apple'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

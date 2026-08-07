@@ -115,6 +115,7 @@ import { useI18n } from '../i18n'
 import { useToast } from '../composables/useToast'
 import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from './Icon.vue'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -157,7 +158,7 @@ async function fetchAnnouncements() {
   if (!props.product) return
   loading.value = true
   try {
-    const res = await fetch(`/admin/api/products/${props.product.id}/announcements`, {
+    const res = await fetch(adminURL(`api/products/${props.product.id}/announcements`), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (handleAuthError(res)) return
@@ -231,8 +232,8 @@ async function save() {
   }
   try {
     const url = editingID.value
-      ? `/admin/api/announcements/${editingID.value}`
-      : `/admin/api/products/${props.product.id}/announcements`
+      ? adminURL(`api/announcements/${editingID.value}`)
+      : adminURL(`api/products/${props.product.id}/announcements`)
     const res = await fetch(url, {
       method: editingID.value ? 'PUT' : 'POST',
       headers: {
@@ -267,7 +268,7 @@ async function toggleEnabled(item: any) {
     end_at: item.end_at
   }
   try {
-    const res = await fetch(`/admin/api/announcements/${item.id}`, {
+    const res = await fetch(adminURL(`api/announcements/${item.id}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -299,7 +300,7 @@ async function remove(item: any) {
   })
   if (!confirmed) return
   try {
-    const res = await fetch(`/admin/api/announcements/${item.id}`, {
+    const res = await fetch(adminURL(`api/announcements/${item.id}`), {
       method: 'DELETE',
       headers: { 'X-Auth-Token': token.value }
     })

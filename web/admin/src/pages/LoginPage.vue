@@ -46,6 +46,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import Icon from '../components/Icon.vue'
+import { adminURL } from '../api'
 
 const emit = defineEmits<{
   login: [token: string]
@@ -66,7 +67,7 @@ async function handleLogin() {
 
   isLoggingIn.value = true
   try {
-    const res = await fetch('/admin/api/products?q=', {
+    const res = await fetch(adminURL('api/products?q='), {
       headers: { 'X-Auth-Token': localToken.value }
     })
 

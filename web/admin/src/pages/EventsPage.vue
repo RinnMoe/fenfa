@@ -106,6 +106,7 @@ import { useProducts } from '../composables/useProducts'
 import { useProductVariantSelector } from '../composables/useProductVariantSelector'
 import Icon from '../components/Icon.vue'
 import Pagination from '../components/Pagination.vue'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   variantId?: string
@@ -148,7 +149,7 @@ async function fetchEvents() {
     if (to.value) p.set('to', to.value)
     p.set('limit', String(pageSize))
     p.set('offset', String((currentPage.value - 1) * pageSize))
-    const res = await fetch('/admin/api/events?' + p.toString(), {
+    const res = await fetch(adminURL('api/events?') + p.toString(), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (handleAuthError(res)) return

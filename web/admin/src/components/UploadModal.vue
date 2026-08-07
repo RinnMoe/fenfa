@@ -123,6 +123,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from '../i18n'
 import Icon from './Icon.vue'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -172,7 +173,7 @@ const canUpload = computed(() => {
 onMounted(async () => {
   try {
     const token = localStorage.getItem('fenfa_admin_token') || ''
-    const res = await fetch('/admin/api/upload-config', {
+    const res = await fetch(adminURL('api/upload-config'), {
       headers: { 'X-Auth-Token': token }
     })
     if (!res.ok) return

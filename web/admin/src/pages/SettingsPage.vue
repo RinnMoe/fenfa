@@ -248,6 +248,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useToast } from '../composables/useToast'
 import Icon from '../components/Icon.vue'
+import { adminURL } from '../api'
 
 const { token, handleAuthError: onAuthError } = useAuth()
 
@@ -305,7 +306,7 @@ function isValidDomain(domain: string): boolean {
 async function loadSettings() {
   loading.value = true
   try {
-    const res = await fetch('/admin/api/settings', {
+    const res = await fetch(adminURL('api/settings'), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (onAuthError(res)) return
@@ -402,7 +403,7 @@ async function handleSave() {
     if (appleForm.teamId) payload.apple_team_id = appleForm.teamId
     if (appleForm.privateKey) payload.apple_private_key = appleForm.privateKey
 
-    const res = await fetch('/admin/api/settings', {
+    const res = await fetch(adminURL('api/settings'), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -453,7 +454,7 @@ async function handleSave() {
 
 async function checkAppleStatus() {
   try {
-    const res = await fetch('/admin/api/apple/status', {
+    const res = await fetch(adminURL('api/apple/status'), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (!res.ok) return
@@ -482,7 +483,7 @@ function handlePrivateKeyFile(event: Event) {
 async function testAppleConnection() {
   testingConnection.value = true
   try {
-    const res = await fetch('/admin/api/apple/status', {
+    const res = await fetch(adminURL('api/apple/status'), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (onAuthError(res)) return

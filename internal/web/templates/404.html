@@ -1,0 +1,22 @@
+{{ define "404.html" }}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ .Title }}</title>
+  <link rel="stylesheet" href="/static/front/style.css" />
+</head>
+<body>
+  <div class="notfound-page">
+    <div class="notfound-card">
+      <p class="notfound-code">404</p>
+      <h1 class="notfound-title">页面未找到</h1>
+      <p class="notfound-desc">您访问的页面不存在或已被移动。</p>
+      <p class="notfound-desc-en">The page you are looking for does not exist.</p>
+      <a class="notfound-home" href="/">返回首页</a>
+    </div>
+  </div>
+</body>
+</html>
+{{ end }}

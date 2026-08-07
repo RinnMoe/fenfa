@@ -77,6 +77,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useProducts } from '../composables/useProducts'
 import { useProductVariantSelector } from '../composables/useProductVariantSelector'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   variantId?: string
@@ -104,7 +105,7 @@ async function fetchStats(variantId: string) {
   loading.value = true
   statsData.value = null
   try {
-    const res = await fetch(`/admin/api/variants/${variantId}/stats`, {
+    const res = await fetch(adminURL(`api/variants/${variantId}/stats`), {
       headers: { 'X-Auth-Token': token.value }
     })
     if (handleAuthError(res)) return

@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -15,6 +16,7 @@ type Config struct {
 		BundleIDPrefix   string   `json:"bundle_id_prefix"`  // Bundle ID prefix (e.g., com.yourcompany.fenfa)
 		DataDir          string   `json:"data_dir"`
 		DBPath           string   `json:"db_path"`
+		AdminPath        string   `json:"admin_path"` // Admin panel URL suffix (default "admin")
 		DevProxyFront    string   `json:"dev_proxy_front"`
 		DevProxyAdmin    string   `json:"dev_proxy_admin"`
 	} `json:"server"`
@@ -33,6 +35,7 @@ func Default() *Config {
 	c.Server.BundleIDPrefix = "com.fenfa.profile"
 	c.Server.DataDir = "data"
 	c.Server.DBPath = "data/fenfa.db"
+	c.Server.AdminPath = "admin"
 	c.Auth.UploadTokens = []string{"dev-upload-token"}
 	c.Auth.AdminTokens = []string{"dev-admin-token"}
 	return c
@@ -77,6 +80,19 @@ func applyEnv(c *Config) {
 	if v := os.Getenv("FENFA_UPLOAD_TOKEN"); v != "" {
 		c.Auth.UploadTokens = []string{v}
 	}
+	if v := os.Getenv("FENFA_ADMIN_PATH"); v != "" {
+		c.Server.AdminPath = v
+	}
+}
+
+// GetAdminPath returns the admin panel URL suffix, normalized without
+// leading/trailing slashes and falling back to "admin".
+func (c *Config) GetAdminPath() string {
+	p := strings.Trim(c.Server.AdminPath, "/")
+	if p == "" {
+		return "admin"
+	}
+	return p
 }
 
 // GetPrimaryDomain returns the primary domain for Apple communication

@@ -147,6 +147,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from '../i18n'
 import Icon from './Icon.vue'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   token: string
@@ -159,7 +160,7 @@ const uploadBaseURL = ref('')
 
 async function fetchUploadConfig() {
   try {
-    const res = await fetch('/admin/api/upload-config', {
+    const res = await fetch(adminURL('api/upload-config'), {
       headers: { 'X-Auth-Token': props.token }
     })
     if (res.ok) {
@@ -279,7 +280,7 @@ async function parseAppInfo() {
         }
       })
       xhr.addEventListener('error', () => reject(new Error('Network error')))
-      xhr.open('POST', uploadBaseURL.value + '/admin/api/parse-app')
+      xhr.open('POST', uploadBaseURL.value + adminURL('api/parse-app'))
       xhr.setRequestHeader('X-Auth-Token', props.token)
       xhr.send(fd)
     })

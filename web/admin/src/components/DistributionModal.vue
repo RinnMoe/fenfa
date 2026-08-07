@@ -52,6 +52,7 @@ import { ref, watch, onMounted, nextTick, computed } from 'vue'
 import { useI18n } from '../i18n'
 import QRCode from 'qrcode'
 import Icon from './Icon.vue'
+import { adminURL } from '../api'
 
 interface ProductLite { id: string; name?: string; slug?: string }
 
@@ -83,7 +84,7 @@ const qrCanvas = ref<HTMLCanvasElement | null>(null)
 async function fetchSettings() {
   loading.value = true
   try {
-    const res = await fetch('/admin/api/settings', { headers: { 'X-Auth-Token': props.token } })
+    const res = await fetch(adminURL('api/settings'), { headers: { 'X-Auth-Token': props.token } })
     const j = await res.json()
     if (res.ok && j.ok) {
       settings.value = j.data

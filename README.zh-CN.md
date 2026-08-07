@@ -76,6 +76,7 @@ go build -o fenfa ./cmd/server
 | `FENFA_PORT` | HTTP 端口 |
 | `FENFA_DATA_DIR` | 数据库目录 |
 | `FENFA_PRIMARY_DOMAIN` | 主域名 |
+| `FENFA_ADMIN_PATH` | 管理后台路径后缀（默认 `admin`） |
 | `FENFA_ADMIN_TOKEN` | 管理员 Token |
 | `FENFA_UPLOAD_TOKEN` | 上传 Token |
 

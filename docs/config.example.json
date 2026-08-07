@@ -10,6 +10,7 @@
     "bundle_id_prefix": "com.yourcompany.fenfa",
     "data_dir": "data",
     "db_path": "data/fenfa.db",
+    "admin_path": "admin",
     "dev_proxy_front": "",
     "dev_proxy_admin": ""
   },

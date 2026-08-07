@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useI18n } from '../i18n'
+import { adminURL } from '../api'
 
 interface Certificate {
   name: string
@@ -220,7 +221,7 @@ async function fetchProfile() {
   loading.value = true
   profile.value = null
   try {
-    const res = await fetch(`/admin/api/apps/${props.app.id}`, {
+    const res = await fetch(adminURL(`api/apps/${props.app.id}`), {
       headers: { 'X-Auth-Token': props.token }
     })
     const j = await res.json()

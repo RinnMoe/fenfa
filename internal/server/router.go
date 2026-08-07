@@ -12,6 +12,8 @@ import (
 )
 
 func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
+	adminPath := cfg.GetAdminPath()
+
 	// Static served in main, still ok to keep here if needed
 	g.GET("/healthz", handlers.Healthz(db))
 
@@ -70,11 +72,11 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	upload.POST("/upload", middleware.RequireToken(cfg, "upload"), handlers.Upload(db, cfg))
 	upload.OPTIONS("/smart-upload", func(c *gin.Context) { c.Status(204) })
 	upload.POST("/smart-upload", middleware.RequireToken(cfg, "upload"), handlers.SmartUpload(db, cfg))
-	upload.OPTIONS("/admin/api/parse-app", func(c *gin.Context) { c.Status(204) })
-	upload.POST("/admin/api/parse-app", middleware.RequireToken(cfg, "admin"), handlers.ParseAppInfo())
+	upload.OPTIONS("/"+adminPath+"/api/parse-app", func(c *gin.Context) { c.Status(204) })
+	upload.POST("/"+adminPath+"/api/parse-app", middleware.RequireToken(cfg, "admin"), handlers.ParseAppInfo())
 
-	// Admin APIs
-	admin := g.Group("/admin")
+	// Admin APIs (under configurable admin path)
+	admin := g.Group("/" + adminPath)
 	admin.Use(middleware.RequireToken(cfg, "admin"))
 	// JSON
 	admin.GET("/api/events", handlers.AdminListEvents(db))
@@ -124,18 +126,23 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin.GET("/exports/events.csv", handlers.ExportEvents(db))
 	admin.GET("/exports/ios_devices.csv", handlers.ExportIOSDevices(db))
 
-	// Template test route
+	// Root landing: project intro page (front SPA intro view)
 	g.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "app.html", gin.H{"Title": "fenfa", "Message": "It works"})
+		c.HTML(http.StatusOK, "app.html", gin.H{"Title": "Fenfa", "Message": ""})
 	})
 
-	// Admin HTML page (public page; exports under /admin/exports require token)
-	g.GET("/admin", func(c *gin.Context) {
+	// Admin HTML page (public page; exports under /<adminPath>/exports require token)
+	g.GET("/"+adminPath, func(c *gin.Context) {
 		if cfg.Server.DevProxyAdmin != "" {
 			target := cfg.Server.DevProxyAdmin + "/"
 			c.Redirect(http.StatusTemporaryRedirect, target)
 			return
 		}
-		c.HTML(http.StatusOK, "admin.html", gin.H{"Title": "Modern distribution"})
+		c.HTML(http.StatusOK, "admin.html", gin.H{"Title": "Modern distribution", "AdminPath": adminPath})
+	})
+
+	// Fallback 404 page for unmatched routes
+	g.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusNotFound, "404.html", gin.H{"Title": "404 · Not Found"})
 	})
 }

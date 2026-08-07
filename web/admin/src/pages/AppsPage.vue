@@ -314,6 +314,7 @@ import { useProducts } from '../composables/useProducts'
 import { useToast } from '../composables/useToast'
 import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from '../components/Icon.vue'
+import { adminURL } from '../api'
 import UploadModal from '../components/UploadModal.vue'
 import DistributionModal from '../components/DistributionModal.vue'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
@@ -411,7 +412,7 @@ watch(localQuery, (value) => {
 })
 
 async function fetchProductDetail(productId: string) {
-  const res = await fetch(`/admin/api/products/${productId}`, {
+  const res = await fetch(adminURL(`api/products/${productId}`), {
     headers: { 'X-Auth-Token': token.value }
   })
   if (handleAuthError(res)) return null
@@ -481,7 +482,7 @@ async function createProduct() {
 
   creatingProduct.value = true
   try {
-    const res = await fetch('/admin/api/products', {
+    const res = await fetch(adminURL('api/products'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -521,7 +522,7 @@ async function createVariant() {
 
   creatingVariant.value = true
   try {
-    const res = await fetch(`/admin/api/products/${activeProduct.value.product.id}/variants`, {
+    const res = await fetch(adminURL(`api/products/${activeProduct.value.product.id}/variants`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -568,7 +569,7 @@ async function updateVariantPublished(variant: any, published: boolean) {
   openProductMenuId.value = ''
   updatingVariantId.value = variant.id
   try {
-    const res = await fetch(`/admin/api/variants/${variant.id}`, {
+    const res = await fetch(adminURL(`api/variants/${variant.id}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -598,7 +599,7 @@ async function updateVariantPublished(variant: any, published: boolean) {
 async function updateReleaseForceUpdate(release: any, forceUpdate: boolean) {
   updatingReleaseId.value = release.id
   try {
-    const res = await fetch(`/admin/api/releases/${release.id}`, {
+    const res = await fetch(adminURL(`api/releases/${release.id}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -643,7 +644,7 @@ async function deleteProduct(product: ProductSummary) {
   if (!confirmed) return
 
   try {
-    const res = await fetch(`/admin/api/products/${product.id}`, {
+    const res = await fetch(adminURL(`api/products/${product.id}`), {
       method: 'DELETE',
       headers: { 'X-Auth-Token': token.value }
     })
@@ -674,7 +675,7 @@ async function deleteVariant(variant: any) {
   if (!confirmed) return
 
   try {
-    const res = await fetch(`/admin/api/variants/${variant.id}`, {
+    const res = await fetch(adminURL(`api/variants/${variant.id}`), {
       method: 'DELETE',
       headers: { 'X-Auth-Token': token.value }
     })
@@ -706,7 +707,7 @@ async function updateProductPublished(product: ProductSummary, published: boolea
 
   updatingProductId.value = product.id
   try {
-    const res = await fetch(`/admin/api/products/${product.id}`, {
+    const res = await fetch(adminURL(`api/products/${product.id}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

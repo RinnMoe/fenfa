@@ -76,6 +76,7 @@ See [docs/config.example.json](docs/config.example.json) for all options.
 | `FENFA_PORT` | HTTP port |
 | `FENFA_DATA_DIR` | Database directory |
 | `FENFA_PRIMARY_DOMAIN` | Public domain URL |
+| `FENFA_ADMIN_PATH` | Admin panel URL suffix (default `admin`) |
 | `FENFA_ADMIN_TOKEN` | Admin token |
 | `FENFA_UPLOAD_TOKEN` | Upload token |
 

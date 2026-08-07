@@ -5,6 +5,30 @@
       <p>{{ t.loading }}</p>
     </div>
 
+    <div v-else-if="intro" class="intro-page">
+      <div class="intro-card">
+        <div class="intro-brand">
+          <span class="intro-mark">F</span>
+          <span class="intro-name">Fenfa</span>
+        </div>
+        <p class="intro-tagline">{{ t.intro.tagline }}</p>
+        <p class="intro-desc">{{ t.intro.description }}</p>
+        <ul class="intro-features">
+          <li v-for="feature in t.intro.features" :key="feature">{{ feature }}</li>
+        </ul>
+        <div class="intro-actions">
+          <a
+            class="intro-btn-primary"
+            href="https://github.com/RinnMoe/fenfa"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {{ t.intro.github }}
+          </a>
+        </div>
+      </div>
+    </div>
+
     <div v-else-if="error" class="state-panel state-error">
       <h1>{{ t.error.title }}</h1>
       <p>{{ error }}</p>
@@ -98,6 +122,7 @@ const pathParts = location.pathname.split('/').filter(Boolean)
 const resourceID = pathParts[1] || ''
 const pageURL = location.href
 const activeVariantId = ref('')
+const intro = ref(false)
 
 const activeVariant = computed(() => {
   return sortedVariants.value.find((variant) => variant.id === activeVariantId.value) || null
@@ -115,6 +140,7 @@ const action = computed(() => {
 })
 
 const pageTitle = computed(() => {
+  if (intro.value) return 'Fenfa'
   if (!productData.value) return 'Fenfa Distribution'
   const parts = [productData.value.product.name]
   const variant = activeVariant.value
@@ -148,7 +174,8 @@ function handlePrimaryAction() {
 
 onMounted(async () => {
   if (!resourceID) {
-    location.replace('/admin')
+    intro.value = true
+    loading.value = false
     return
   }
 
