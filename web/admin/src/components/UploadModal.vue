@@ -50,6 +50,15 @@
             <textarea v-model="form.changelog" :placeholder="t.uploadModal.changelogPlaceholder" class="input textarea" rows="3"></textarea>
           </div>
 
+          <div class="form-row">
+            <div class="form-group checkbox-group">
+              <label class="label checkbox-label">
+                <input v-model="form.force_update" type="checkbox">
+                {{ t.uploadModal.forceUpdate }}
+              </label>
+            </div>
+          </div>
+
           <div class="form-group">
             <label class="label">{{ t.uploadModal.fileRequired }}</label>
             <div
@@ -148,7 +157,8 @@ const form = reactive({
   build: '',
   channel: 'internal',
   min_os: '',
-  changelog: ''
+  changelog: '',
+  force_update: false
 })
 
 const acceptTypes = computed(() => {
@@ -187,6 +197,7 @@ function resetForm() {
   form.channel = 'internal'
   form.min_os = ''
   form.changelog = ''
+  form.force_update = false
   selectedFile.value = null
   uploadProgress.value = 0
   uploadResult.value = null
@@ -251,6 +262,7 @@ async function handleUpload() {
   if (form.channel) fd.set('channel', form.channel)
   if (form.min_os) fd.set('min_os', form.min_os)
   if (form.changelog) fd.set('changelog', form.changelog)
+  if (form.force_update) fd.set('force_update', 'true')
   fd.set('app_file', selectedFile.value)
 
   uploading.value = true
@@ -328,6 +340,18 @@ async function handleUpload() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .dropzone {

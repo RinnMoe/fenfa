@@ -9,6 +9,9 @@ export default {
     logout: '退出登录',
     login: '登录',
     cancel: '取消',
+    close: '关闭',
+    save: '保存',
+    edit: '编辑',
     confirm: '确认',
     success: '成功',
     failed: '失败',
@@ -63,6 +66,7 @@ export default {
     actions: '操作',
     viewStats: '查看统计',
     viewEvents: '查看事件',
+    announcements: '公告',
     uploadNewVersion: '上传新版本',
     viewDistribution: '查看分发',
     distributionDesc: '根据主域名与分发域名自动生成该应用的访问链接。',
@@ -126,7 +130,10 @@ export default {
     deleteReleaseConfirm: '确定要删除版本 {version} (Build {build}) 吗？此操作不可恢复。',
     deleteProductFailed: '删除产品失败',
     deleteVariantFailed: '删除变体失败',
-    deleteReleaseFailed: '删除版本失败'
+    deleteReleaseFailed: '删除版本失败',
+    forceUpdate: '强制更新',
+    updateReleaseSuccess: '版本更新成功',
+    updateReleaseFailed: '版本更新失败'
   },
 
   uploadModal: {
@@ -144,6 +151,7 @@ export default {
     minOSPlaceholder: '例如: iOS 14.0 或 Android 8.0',
     changelog: '更新说明',
     changelogPlaceholder: '本次更新的内容...',
+    forceUpdate: '强制更新',
     fileRequired: '应用文件 *',
     dragDropText: '拖拽文件到此处',
     orClickToSelect: '或点击选择文件',
@@ -193,6 +201,7 @@ export default {
     minOSPlaceholder: '14.0',
     changelog: '更新说明',
     changelogPlaceholder: '本次更新的内容...',
+    forceUpdate: '强制更新',
     file: '应用文件',
     fileRequired: '应用文件 *',
     uploadButton: '开始上传',
@@ -228,6 +237,7 @@ export default {
     channelPlaceholder: '例如: internal, beta, release',
     changelog: '更新说明',
     changelogPlaceholder: '本次更新的内容...',
+    forceUpdate: '强制更新',
     uploadButton: '确认上传',
     uploading: '上传中...',
     uploadSuccess: '上传成功',
@@ -443,5 +453,32 @@ export default {
     testing: '测试中...',
     connectionSuccess: 'Apple API 连接成功',
     connectionFailed: 'Apple API 连接失败'
+  },
+
+  announcements: {
+    title: '公告',
+    product: '产品',
+    create: '创建公告',
+    title: '标题',
+    titlePlaceholder: '公告标题',
+    content: '内容',
+    contentPlaceholder: '公告内容',
+    enabled: '启用',
+    enabledOn: '已启用',
+    enabledOff: '已停用',
+    startAt: '开始时间',
+    endAt: '结束时间',
+    createdAt: '创建时间',
+    empty: '暂无公告',
+    loadFailed: '加载公告失败',
+    saveSuccess: '公告保存成功',
+    saveFailed: '公告保存失败',
+    deleteTitle: '删除公告',
+    deleteConfirm: '确定要删除这条公告吗？',
+    deleteFailed: '删除公告失败',
+    required: '标题和内容不能为空',
+    invalidRange: '开始时间不能晚于结束时间',
+    enable: '启用',
+    disable: '停用'
   }
 }

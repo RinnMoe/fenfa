@@ -32,6 +32,10 @@ type adminProductInput struct {
 	Published   *bool  `json:"published"`
 }
 
+type adminReleaseInput struct {
+	ForceUpdate *bool `json:"force_update"`
+}
+
 func AdminListProducts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		q := db.Model(&store.Product{})
@@ -120,6 +124,7 @@ func AdminGetProduct(db *gorm.DB) gin.HandlerFunc {
 					"created_at":     release.CreatedAt,
 					"download_count": release.DownloadCount,
 					"channel":        release.Channel,
+					"force_update":   release.ForceUpdate,
 					"min_os":         release.MinOS,
 					"changelog":      release.Changelog,
 					"file_ext":       release.FileExt,
@@ -188,6 +193,7 @@ func AdminGetVariantStats(db *gorm.DB) gin.HandlerFunc {
 				"download_count": release.DownloadCount,
 				"created_at":     release.CreatedAt,
 				"channel":        release.Channel,
+				"force_update":   release.ForceUpdate,
 				"min_os":         release.MinOS,
 				"changelog":      release.Changelog,
 				"file_ext":       release.FileExt,
@@ -562,6 +568,9 @@ func AdminDeleteProduct(db *gorm.DB) gin.HandlerFunc {
 			if err := tx.Where("product_id = ?", product.ID).Delete(&store.Variant{}).Error; err != nil {
 				return err
 			}
+			if err := tx.Where("product_id = ?", product.ID).Delete(&store.Announcement{}).Error; err != nil {
+				return err
+			}
 			return tx.Delete(&product).Error
 		})
 		if err != nil {
@@ -621,6 +630,41 @@ func AdminDeleteVariant(db *gorm.DB) gin.HandlerFunc {
 		deleteReleaseFiles(releases)
 
 		c.JSON(http.StatusOK, gin.H{"ok": true})
+	}
+}
+
+func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		releaseID := c.Param("releaseID")
+		var input adminReleaseInput
+		if err := c.ShouldBindJSON(&input); err != nil || input.ForceUpdate == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "invalid release payload"}})
+			return
+		}
+
+		var release store.Release
+		if err := db.Where("id = ?", releaseID).First(&release).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"ok": false, "error": gin.H{"code": "NOT_FOUND", "message": "release not found"}})
+			return
+		}
+
+		if err := db.Model(&release).Update("force_update", *input.ForceUpdate).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
+			return
+		}
+
+		if err := db.Where("id = ?", releaseID).First(&release).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{"release": gin.H{
+			"id":           release.ID,
+			"version":      release.Version,
+			"build":        release.Build,
+			"force_update": release.ForceUpdate,
+			"created_at":   release.CreatedAt,
+		}}})
 	}
 }
 

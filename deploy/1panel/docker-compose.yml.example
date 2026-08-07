@@ -1,0 +1,19 @@
+services:
+  fenfa:
+    image: ghcr.io/rinnmoe/fenfa:v0.1.0
+    container_name: fenfa
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      FENFA_ADMIN_TOKEN: ${FENFA_ADMIN_TOKEN}
+      FENFA_UPLOAD_TOKEN: ${FENFA_UPLOAD_TOKEN}
+      FENFA_PRIMARY_DOMAIN: ${FENFA_PRIMARY_DOMAIN}
+    volumes:
+      - ./data:/data
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

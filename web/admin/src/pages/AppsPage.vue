@@ -106,10 +106,16 @@
                         <h2 class="detail-title">{{ activeProduct.product.name }}</h2>
                         <p class="detail-subtitle">/{{ activeProduct.product.slug || activeProduct.product.id }}</p>
                       </div>
-                      <button class="btn-ghost btn-ghost-sm" @click.stop="closeProduct">
-                        <Icon name="x" :size="14" />
-                        {{ t.common.cancel }}
-                      </button>
+                      <div class="detail-actions">
+                        <button class="btn-ghost btn-ghost-sm" @click.stop="openAnnouncements(activeProduct.product)">
+                          <Icon name="info" :size="14" />
+                          {{ t.apps.announcements }}
+                        </button>
+                        <button class="btn-ghost btn-ghost-sm" @click.stop="closeProduct">
+                          <Icon name="x" :size="14" />
+                          {{ t.common.cancel }}
+                        </button>
+                      </div>
                     </div>
 
                     <!-- Variants -->
@@ -141,6 +147,15 @@
                             </div>
                             <div class="release-line muted">{{ new Date(variant.releases[0].created_at).toLocaleString() }}</div>
                             <div v-if="variant.releases[0].changelog" class="release-changelog">{{ variant.releases[0].changelog }}</div>
+                            <label class="force-update-label">
+                              <input
+                                type="checkbox"
+                                :checked="!!variant.releases[0].force_update"
+                                :disabled="updatingReleaseId === variant.releases[0].id"
+                                @change="updateReleaseForceUpdate(variant.releases[0], ($event.target as HTMLInputElement).checked)"
+                              >
+                              {{ t.apps.forceUpdate }}
+                            </label>
                           </div>
 
                           <div class="variant-actions">
@@ -233,6 +248,12 @@
       @success="handleUploadSuccess"
     />
 
+    <AnnouncementModal
+      :show="showAnnouncementModal"
+      :product="selectedAnnouncementProduct"
+      @close="showAnnouncementModal = false"
+    />
+
     <DistributionModal
       :show="showDistributionModal"
       :product="selectedDistributionProduct"
@@ -253,6 +274,7 @@ import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from '../components/Icon.vue'
 import UploadModal from '../components/UploadModal.vue'
 import DistributionModal from '../components/DistributionModal.vue'
+import AnnouncementModal from '../components/AnnouncementModal.vue'
 
 interface ProductSummary {
   id: string
@@ -280,16 +302,19 @@ const activeProduct = ref<ProductDetail | null>(null)
 const activeProductId = ref('')
 const updatingProductId = ref('')
 const updatingVariantId = ref('')
+const updatingReleaseId = ref('')
 const creatingProduct = ref(false)
 const creatingVariant = ref(false)
 const showUploadModal = ref(false)
 const showDistributionModal = ref(false)
+const showAnnouncementModal = ref(false)
 const showCreateProduct = ref(false)
 const showCreateVariant = ref(false)
 const openDropdownId = ref('')
 const selectedProduct = ref<any>(null)
 const selectedVariant = ref<any>(null)
 const selectedDistributionProduct = ref<any>(null)
+const selectedAnnouncementProduct = ref<any>(null)
 
 const newVariant = reactive({
   platform: 'ios',
@@ -374,6 +399,11 @@ function openUploadModal(product: any, variant: any) {
 function openDistribution(product: ProductSummary) {
   selectedDistributionProduct.value = product
   showDistributionModal.value = true
+}
+
+function openAnnouncements(product: any) {
+  selectedAnnouncementProduct.value = product
+  showAnnouncementModal.value = true
 }
 
 async function createProduct() {
@@ -494,6 +524,35 @@ async function updateVariantPublished(variant: any, published: boolean) {
     toast.error(t.value.apps.updateVariantFailed + ': ' + error)
   } finally {
     updatingVariantId.value = ''
+  }
+}
+
+async function updateReleaseForceUpdate(release: any, forceUpdate: boolean) {
+  updatingReleaseId.value = release.id
+  try {
+    const res = await fetch(`/admin/api/releases/${release.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': token.value
+      },
+      body: JSON.stringify({ force_update: forceUpdate })
+    })
+    if (handleAuthError(res)) return
+    const payload = await res.json()
+    if (!res.ok || !payload.ok) {
+      toast.error(payload.error?.message || t.value.apps.updateReleaseFailed)
+      return
+    }
+    toast.success(t.value.apps.updateReleaseSuccess)
+    fetchProducts()
+    if (activeProduct.value) {
+      activeProduct.value = await fetchProductDetail(activeProduct.value.product.id)
+    }
+  } catch (error) {
+    toast.error(t.value.apps.updateReleaseFailed + ': ' + error)
+  } finally {
+    updatingReleaseId.value = ''
   }
 }
 
@@ -747,6 +806,12 @@ async function updateProductPublished(product: ProductSummary, published: boolea
   margin-bottom: 16px;
 }
 
+.detail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -834,6 +899,15 @@ async function updateProductPublished(product: ProductSummary, published: boolea
 .release-changelog {
   color: var(--text-body);
   white-space: pre-wrap;
+}
+
+.force-update-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .variant-actions {

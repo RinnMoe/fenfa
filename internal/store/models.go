@@ -61,7 +61,21 @@ type Release struct {
 	MimeType      string    `gorm:"size:128" json:"mime_type"`
 	DownloadCount int64     `gorm:"index" json:"download_count"`
 	Channel       string    `gorm:"size:64" json:"channel"`
+	ForceUpdate   bool      `gorm:"default:false" json:"force_update"`
 	CreatedAt     time.Time `json:"created_at"`
+}
+
+// Announcement represents a product-scoped public notice.
+type Announcement struct {
+	ID        string     `gorm:"primaryKey;size:64" json:"id"`
+	ProductID string     `gorm:"index;size:64" json:"product_id"`
+	Title     string     `gorm:"size:255" json:"title"`
+	Content   string     `gorm:"type:text" json:"content"`
+	Enabled   bool       `gorm:"default:true" json:"enabled"`
+	StartAt   *time.Time `json:"start_at"`
+	EndAt     *time.Time `json:"end_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // AuthToken for upload/admin scopes

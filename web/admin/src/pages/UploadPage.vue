@@ -95,6 +95,13 @@
         </div>
 
         <div class="form-group full-width">
+          <label class="label checkbox-label">
+            <input v-model="form.force_update" type="checkbox">
+            {{ t.upload.forceUpdate }}
+          </label>
+        </div>
+
+        <div class="form-group full-width">
           <label class="label">{{ t.upload.fileRequired }}</label>
           <input ref="fileInput" type="file" :accept="acceptTypes" class="input file-input">
         </div>
@@ -151,7 +158,8 @@ const form = reactive({
   build: '',
   channel: '',
   min_os: '',
-  changelog: ''
+  changelog: '',
+  force_update: false
 })
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -217,6 +225,7 @@ async function doUpload() {
   if (form.channel) fd.set('channel', form.channel)
   if (form.min_os) fd.set('min_os', form.min_os)
   if (form.changelog) fd.set('changelog', form.changelog)
+  if (form.force_update) fd.set('force_update', 'true')
   fd.set('app_file', file)
 
   uploading.value = true
@@ -300,6 +309,13 @@ onMounted(() => {
 
 .full-width {
   margin-top: 20px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .textarea {

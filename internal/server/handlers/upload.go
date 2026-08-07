@@ -44,6 +44,7 @@ type uploadParams struct {
 	Version       string
 	Build         int64
 	Channel       string
+	ForceUpdate   bool
 	MinOS         string
 	Changelog     string
 	IconBase64    string
@@ -90,6 +91,7 @@ func Upload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 			Version:     c.PostForm("version"),
 			Build:       build,
 			Channel:     c.PostForm("channel"),
+			ForceUpdate: formBool(c.PostForm("force_update")),
 			MinOS:       coalesceFirstNonEmpty(c.PostForm("min_os"), target.Variant.MinOS),
 			Changelog:   c.PostForm("changelog"),
 			IconBase64:  c.PostForm("icon_base64"),
@@ -109,18 +111,19 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 	ext := detectFileExt(file.Filename)
 
 	release := store.Release{
-		ID:        "rel_" + randHexN(8),
-		AppID:     p.LegacyAppID,
-		VariantID: p.VariantID,
-		Version:   version,
-		Build:     build,
-		Channel:   channel,
-		MinOS:     minOS,
-		Changelog: changelog,
-		FileExt:   ext,
-		FileName:  filepath.Base(file.Filename),
-		MimeType:  contentTypeForExt(ext),
-		CreatedAt: time.Now(),
+		ID:          "rel_" + randHexN(8),
+		AppID:       p.LegacyAppID,
+		VariantID:   p.VariantID,
+		Version:     version,
+		Build:       build,
+		Channel:     channel,
+		ForceUpdate: p.ForceUpdate,
+		MinOS:       minOS,
+		Changelog:   changelog,
+		FileExt:     ext,
+		FileName:    filepath.Base(file.Filename),
+		MimeType:    contentTypeForExt(ext),
+		CreatedAt:   time.Now(),
 	}
 
 	// Save file and compute SHA256
@@ -335,7 +338,7 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 		"ios_manifest": manifestURL,
 		"ios_install":  "itms-services://?action=download-manifest&url=" + url.QueryEscape(manifestURL),
 	}
-	c.JSON(http.StatusCreated, gin.H{"ok": true, "data": gin.H{"app": gin.H{"id": p.LegacyAppID, "name": p.ProductName, "platform": p.Platform, "bundle_id": p.Identifier, "product_id": p.ProductID, "variant_id": p.VariantID}, "release": gin.H{"id": release.ID, "version": release.Version, "build": release.Build, "created_at": release.CreatedAt}, "urls": urls}})
+	c.JSON(http.StatusCreated, gin.H{"ok": true, "data": gin.H{"app": gin.H{"id": p.LegacyAppID, "name": p.ProductName, "platform": p.Platform, "bundle_id": p.Identifier, "product_id": p.ProductID, "variant_id": p.VariantID}, "release": gin.H{"id": release.ID, "version": release.Version, "build": release.Build, "force_update": release.ForceUpdate, "created_at": release.CreatedAt}, "urls": urls}})
 }
 
 // copyFile copies src to dst.
@@ -471,6 +474,11 @@ func coalesceFirstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func formBool(value string) bool {
+	value = strings.TrimSpace(strings.ToLower(value))
+	return value == "true" || value == "1" || value == "yes"
 }
 
 // saveProvisioningProfile extracts and saves provisioning profile from an IPA file

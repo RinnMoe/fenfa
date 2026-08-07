@@ -67,6 +67,7 @@ func AdminGetApp(db *gorm.DB) gin.HandlerFunc {
 				"created_at":     r.CreatedAt,
 				"download_count": r.DownloadCount,
 				"channel":        r.Channel,
+				"force_update":   r.ForceUpdate,
 				"min_os":         r.MinOS,
 				"changelog":      r.Changelog,
 			}
