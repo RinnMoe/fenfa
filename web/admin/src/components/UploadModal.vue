@@ -1,24 +1,29 @@
 <template>
-  <div v-if="show && product && variant" class="modal-overlay" @click.self="handleClose">
-    <div class="modal-container upload-modal">
-      <div class="modal-header">
-        <h2 class="modal-title">{{ t.uploadModal.title }}</h2>
-        <button @click="handleClose" class="close-btn" aria-label="Close">×</button>
-      </div>
+  <n-modal
+    :show="show && !!product && !!variant"
+    preset="card"
+    :style="{ width: '560px', maxWidth: 'calc(100vw - 32px)' }"
+    :mask-closable="!uploading"
+    :close-on-esc="!uploading"
+    @update:show="handleShow"
+  >
+    <template #header>
+      <h2 class="modal-title">{{ t.uploadModal.title }}</h2>
+    </template>
 
-      <div class="modal-body">
+    <div class="modal-body">
         <div class="upload-target">
           <div>
             <span class="info-label">{{ t.uploadModal.appName }}</span>
-            <span>{{ product.name }}</span>
+            <span>{{ product?.name }}</span>
           </div>
           <div>
             <span class="info-label">{{ t.uploadModal.platform }}</span>
-            <span>{{ variant.platform }}</span>
+            <span>{{ variant?.platform }}</span>
           </div>
           <div>
             <span class="info-label">{{ t.uploadModal.identifier }}</span>
-            <span class="mono">{{ variant.identifier }}</span>
+            <span class="mono">{{ variant?.identifier }}</span>
           </div>
         </div>
 
@@ -107,23 +112,25 @@
             {{ t.uploadModal.uploadFailed }}: {{ uploadResult.error?.message || t.uploadModal.unknownError }}
           </div>
         </div>
-      </div>
-
-      <div class="modal-footer">
-        <button @click="handleClose" class="btn-secondary">{{ t.common.cancel }}</button>
-        <button @click="handleUpload" :disabled="!canUpload" class="btn-primary">
-          {{ uploading ? t.uploadModal.uploading : t.uploadModal.uploadButton }}
-        </button>
-      </div>
     </div>
-  </div>
+
+    <template #footer>
+      <button @click="handleClose" class="btn-secondary">{{ t.common.cancel }}</button>
+      <button @click="handleUpload" :disabled="!canUpload" class="btn-primary">
+        {{ uploading ? t.uploadModal.uploading : t.uploadModal.uploadButton }}
+      </button>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { NModal } from 'naive-ui'
 import { useI18n } from '../i18n'
+import { useAuth } from '../composables/useAuth'
+import { uploadWithProgress } from '../composables/useUpload'
 import Icon from './Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -137,6 +144,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { token, handleAuthError } = useAuth()
 const uploadBaseURL = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -172,9 +180,8 @@ const canUpload = computed(() => {
 
 onMounted(async () => {
   try {
-    const token = localStorage.getItem('fenfa_admin_token') || ''
-    const res = await fetch(adminURL('api/upload-config'), {
-      headers: { 'X-Auth-Token': token }
+    const res = await adminFetch('api/upload-config', {
+      token: token.value
     })
     if (!res.ok) return
     const payload = await res.json()
@@ -200,6 +207,10 @@ function handleClose() {
   if (uploading.value) return
   emit('close')
   resetForm()
+}
+
+function handleShow(next: boolean) {
+  if (!next) handleClose()
 }
 
 function triggerFileInput() {
@@ -262,45 +273,31 @@ async function handleUpload() {
   uploadProgress.value = 0
   uploadResult.value = null
 
-  try {
-    const token = localStorage.getItem('fenfa_admin_token') || ''
-    const xhr = new XMLHttpRequest()
-
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        uploadProgress.value = Math.round((event.loaded / event.total) * 100)
-      }
-    })
-
-    const response = await new Promise<any>((resolve, reject) => {
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200 || xhr.status === 201) {
-          resolve(JSON.parse(xhr.responseText))
-          return
-        }
-        reject(new Error(`HTTP ${xhr.status}`))
-      })
-      xhr.addEventListener('error', () => reject(new Error('Network error')))
-      xhr.open('POST', uploadBaseURL.value + '/upload')
-      xhr.setRequestHeader('X-Auth-Token', token)
-      xhr.send(fd)
-    })
-
-    uploadResult.value = response
-    if (response.ok) {
-      setTimeout(() => {
-        emit('success')
-        resetForm()
-      }, 1200)
+  const response = await uploadWithProgress({
+    url: uploadBaseURL.value + '/upload',
+    token: token.value,
+    formData: fd,
+    onProgress: (percent) => {
+      uploadProgress.value = percent
+    },
+    onAuthError: () => {
+      handleAuthError(new Response(null, { status: 401 }))
     }
-  } catch (error: any) {
-    uploadResult.value = {
-      ok: false,
-      error: { message: error.message }
-    }
-  } finally {
+  })
+
+  if (response.error?.message === 'AUTH_ERROR') {
     uploading.value = false
+    return
   }
+
+  uploadResult.value = response
+  if (response.ok) {
+    setTimeout(() => {
+      emit('success')
+      resetForm()
+    }, 1200)
+  }
+  uploading.value = false
 }
 </script>
 

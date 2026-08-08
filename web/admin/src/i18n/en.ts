@@ -460,7 +460,7 @@ export default {
     title: 'Announcements',
     product: 'Product',
     create: 'Create Announcement',
-    title: 'Title',
+    titleLabel: 'Title',
     titlePlaceholder: 'Announcement title',
     content: 'Content',
     contentPlaceholder: 'Announcement content',

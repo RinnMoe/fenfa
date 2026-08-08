@@ -139,7 +139,7 @@ import { useProducts } from '../composables/useProducts'
 import { useToast } from '../composables/useToast'
 import { useProductVariantSelector } from '../composables/useProductVariantSelector'
 import SmartUpload from '../components/SmartUpload.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const { t } = useI18n()
 const { token, handleAuthError } = useAuth()
@@ -194,8 +194,8 @@ watch(selectedVariant, (variant) => {
 
 async function fetchUploadConfig() {
   try {
-    const res = await fetch(adminURL('api/upload-config'), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch('api/upload-config', {
+      token: token.value
     })
     if (res.ok) {
       const data = await res.json()

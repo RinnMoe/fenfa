@@ -1,11 +1,12 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import AppsPage from './pages/AppsPage.vue'
-import UploadPage from './pages/UploadPage.vue'
-import StatsPage from './pages/StatsPage.vue'
-import EventsPage from './pages/EventsPage.vue'
-import UdidPage from './pages/UdidPage.vue'
-import ExportPage from './pages/ExportPage.vue'
-import SettingsPage from './pages/SettingsPage.vue'
+
+const AppsPage = () => import('./pages/AppsPage.vue')
+const UploadPage = () => import('./pages/UploadPage.vue')
+const StatsPage = () => import('./pages/StatsPage.vue')
+const EventsPage = () => import('./pages/EventsPage.vue')
+const UdidPage = () => import('./pages/UdidPage.vue')
+const ExportPage = () => import('./pages/ExportPage.vue')
+const SettingsPage = () => import('./pages/SettingsPage.vue')
 
 const router = createRouter({
   history: createWebHashHistory(),

@@ -1,17 +1,20 @@
 <template>
-  <Teleport to="body">
-    <transition name="dialog">
-      <div v-if="show" class="dialog-overlay" @click="$emit('close')">
-        <div class="dialog-container" @click.stop>
-          <div class="dialog-header">
-            <h3 class="dialog-title">{{ t.profile.title }} · {{ app?.name || app?.id }}</h3>
-          </div>
-          <div class="dialog-body">
-            <div v-if="loading" class="loading">{{ t.common.loading }}</div>
-            <div v-else-if="!profile" class="empty-state">
-              {{ t.profile.noProfile }}
-            </div>
-            <div v-else class="profile-content">
+  <n-modal
+    :show="show"
+    preset="card"
+    :style="{ width: '720px', maxWidth: 'calc(100vw - 32px)' }"
+    @update:show="handleShow"
+  >
+    <template #header>
+      <h3 class="dialog-title">{{ t.profile.title }} · {{ app?.name || app?.id }}</h3>
+    </template>
+
+    <div class="dialog-body">
+      <div v-if="loading" class="loading">{{ t.common.loading }}</div>
+      <div v-else-if="!profile" class="empty-state">
+        {{ t.profile.noProfile }}
+      </div>
+      <div v-else class="profile-content">
               <!-- Basic Info -->
               <div class="profile-section">
                 <h4 class="profile-section-title">{{ t.profile.basicInfo }}</h4>
@@ -121,21 +124,20 @@
                   <pre>{{ JSON.stringify(profile.entitlements, null, 2) }}</pre>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="dialog-footer">
-            <button class="btn btn-secondary" @click="$emit('close')">{{ t.common.cancel }}</button>
-          </div>
-        </div>
       </div>
-    </transition>
-  </Teleport>
+    </div>
+
+    <template #footer>
+      <button class="btn btn-secondary" @click="$emit('close')">{{ t.common.cancel }}</button>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
+import { NModal } from 'naive-ui'
 import { useI18n } from '../i18n'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 interface Certificate {
   name: string
@@ -221,8 +223,8 @@ async function fetchProfile() {
   loading.value = true
   profile.value = null
   try {
-    const res = await fetch(adminURL(`api/apps/${props.app.id}`), {
-      headers: { 'X-Auth-Token': props.token }
+    const res = await adminFetch(`api/apps/${props.app.id}`, {
+      token: props.token
     })
     const j = await res.json()
     if (res.ok && j.ok && j.data?.releases?.length > 0) {
@@ -236,6 +238,10 @@ async function fetchProfile() {
   } finally {
     loading.value = false
   }
+}
+
+function handleShow(next: boolean) {
+  if (!next) emit('close')
 }
 
 watch(() => props.show, (v) => {
@@ -252,19 +258,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dialog-container {
-  max-width: 720px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-}
-
 .dialog-body {
   flex: 1;
-}
-
-.dialog-footer {
-  flex-shrink: 0;
 }
 
 .loading,

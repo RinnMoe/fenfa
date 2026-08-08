@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/static/front/',
   resolve: {
     alias: {
       // Use the full build of Vue that includes the runtime compiler

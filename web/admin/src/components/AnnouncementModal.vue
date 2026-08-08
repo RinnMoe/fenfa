@@ -1,15 +1,18 @@
 <template>
-  <div v-if="show && product" class="modal-overlay" @click.self="handleClose">
-    <div class="modal-container announcement-modal">
-      <div class="modal-header">
-        <h2 class="modal-title">{{ t.announcements.title }}</h2>
-        <button @click="handleClose" class="close-btn">✕</button>
-      </div>
+  <n-modal
+    :show="show && !!product"
+    preset="card"
+    :style="{ width: '640px', maxWidth: 'calc(100vw - 32px)' }"
+    @update:show="handleShow"
+  >
+    <template #header>
+      <h2 class="modal-title">{{ t.announcements.title }}</h2>
+    </template>
 
-      <div class="modal-body">
-        <div class="announcement-product">
-          {{ t.announcements.product }}: <strong>{{ product.name }}</strong>
-        </div>
+    <div class="modal-body">
+      <div class="announcement-product">
+        {{ t.announcements.product }}: <strong>{{ product?.name }}</strong>
+      </div>
 
         <div v-if="loading" class="announcement-state">{{ t.common.loading }}</div>
 
@@ -24,7 +27,7 @@
           <div v-if="showForm" class="announcement-form">
             <div class="form-grid">
               <div class="form-group">
-                <label class="label">{{ t.announcements.title }} *</label>
+                <label class="label">{{ t.announcements.titleLabel }} *</label>
                 <input v-model="form.title" class="input" :placeholder="t.announcements.titlePlaceholder">
               </div>
 
@@ -65,7 +68,7 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>{{ t.announcements.title }}</th>
+                  <th>{{ t.announcements.titleLabel }}</th>
                   <th>{{ t.announcements.enabled }}</th>
                   <th>{{ t.announcements.startAt }}</th>
                   <th>{{ t.announcements.endAt }}</th>
@@ -99,23 +102,23 @@
             </table>
           </div>
         </template>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" @click="handleClose">{{ t.common.close }}</button>
-      </div>
     </div>
-  </div>
+
+    <template #footer>
+      <button class="btn-secondary" @click="handleClose">{{ t.common.close }}</button>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
+import { NModal } from 'naive-ui'
 import { useAuth } from '../composables/useAuth'
 import { useI18n } from '../i18n'
 import { useToast } from '../composables/useToast'
 import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from './Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -158,8 +161,8 @@ async function fetchAnnouncements() {
   if (!props.product) return
   loading.value = true
   try {
-    const res = await fetch(adminURL(`api/products/${props.product.id}/announcements`), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch(`api/products/${props.product.id}/announcements`, {
+      token: token.value
     })
     if (handleAuthError(res)) return
     const payload = await res.json()
@@ -232,13 +235,13 @@ async function save() {
   }
   try {
     const url = editingID.value
-      ? adminURL(`api/announcements/${editingID.value}`)
-      : adminURL(`api/products/${props.product.id}/announcements`)
-    const res = await fetch(url, {
+      ? `api/announcements/${editingID.value}`
+      : `api/products/${props.product.id}/announcements`
+    const res = await adminFetch(url, {
       method: editingID.value ? 'PUT' : 'POST',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
     })
@@ -268,11 +271,11 @@ async function toggleEnabled(item: any) {
     end_at: item.end_at
   }
   try {
-    const res = await fetch(adminURL(`api/announcements/${item.id}`), {
+    const res = await adminFetch(`api/announcements/${item.id}`, {
       method: 'PUT',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
     })
@@ -300,9 +303,9 @@ async function remove(item: any) {
   })
   if (!confirmed) return
   try {
-    const res = await fetch(adminURL(`api/announcements/${item.id}`), {
+    const res = await adminFetch(`api/announcements/${item.id}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': token.value }
+      token: token.value
     })
     if (handleAuthError(res)) return
     const payload = await res.json()
@@ -327,6 +330,10 @@ function formatDate(value: string | null): string {
 function handleClose() {
   if (saving.value) return
   emit('close')
+}
+
+function handleShow(next: boolean) {
+  if (!next) handleClose()
 }
 </script>
 

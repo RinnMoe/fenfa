@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 interface ProductSummary {
   id: string
@@ -38,8 +38,8 @@ export function useProductVariantSelector(
   async function fetchProductDetail(productId: string) {
     loadingVariants.value = true
     try {
-      const res = await fetch(adminURL(`api/products/${productId}`), {
-        headers: { 'X-Auth-Token': token.value }
+      const res = await adminFetch(`api/products/${productId}`, {
+        token: token.value
       })
       if (onAuthError(res)) return
       const payload = await res.json()
@@ -70,8 +70,8 @@ export function useProductVariantSelector(
 
   async function initFromVariantId(variantId: string) {
     try {
-      const res = await fetch(adminURL(`api/variants/${variantId}/stats`), {
-        headers: { 'X-Auth-Token': token.value }
+      const res = await adminFetch(`api/variants/${variantId}/stats`, {
+        token: token.value
       })
       if (!res.ok) return
       const payload = await res.json()

@@ -146,8 +146,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from '../i18n'
+import { uploadWithProgress } from '../composables/useUpload'
 import Icon from './Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch, adminURL } from '../api'
 
 const props = defineProps<{
   token: string
@@ -160,8 +161,8 @@ const uploadBaseURL = ref('')
 
 async function fetchUploadConfig() {
   try {
-    const res = await fetch(adminURL('api/upload-config'), {
-      headers: { 'X-Auth-Token': props.token }
+    const res = await adminFetch('api/upload-config', {
+      token: props.token
     })
     if (res.ok) {
       const data = await res.json()
@@ -253,53 +254,33 @@ async function parseAppInfo() {
   parseProgress.value = 0
   parseError.value = ''
 
-  try {
-    const fd = new FormData()
-    fd.set('app_file', selectedFile.value)
+  const fd = new FormData()
+  fd.set('app_file', selectedFile.value)
 
-    const xhr = new XMLHttpRequest()
-
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        parseProgress.value = Math.round((e.loaded / e.total) * 100)
-      }
-    })
-
-    const result = await new Promise<any>((resolve, reject) => {
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 401 || xhr.status === 403) {
-          const fakeRes = new Response(null, { status: xhr.status })
-          props.onAuthError(fakeRes)
-          reject(new Error('AUTH_ERROR'))
-          return
-        }
-        if (xhr.status === 200) {
-          resolve(JSON.parse(xhr.responseText))
-        } else {
-          reject(new Error(`HTTP ${xhr.status}`))
-        }
-      })
-      xhr.addEventListener('error', () => reject(new Error('Network error')))
-      xhr.open('POST', uploadBaseURL.value + adminURL('api/parse-app'))
-      xhr.setRequestHeader('X-Auth-Token', props.token)
-      xhr.send(fd)
-    })
-
-    if (result.ok) {
-      if (result.data?.platform !== props.variant.platform) {
-        parseError.value = t.value.smartUpload.platformMismatch
-        return
-      }
-      appInfo.value = result.data
-      step.value = 2
-    } else {
-      parseError.value = result.error?.message || t.value.smartUpload.unknownError
+  const result = await uploadWithProgress({
+    url: uploadBaseURL.value + adminURL('api/parse-app'),
+    token: props.token,
+    formData: fd,
+    onProgress: (percent) => {
+      parseProgress.value = percent
+    },
+    onAuthError: () => {
+      props.onAuthError(new Response(null, { status: 401 }))
     }
-  } catch (error: any) {
-    if (error.message === 'AUTH_ERROR') return
-    parseError.value = error.message
-  } finally {
-    parsing.value = false
+  })
+
+  parsing.value = false
+  if (result.error?.message === 'AUTH_ERROR') return
+
+  if (result.ok) {
+    if (result.data?.platform !== props.variant.platform) {
+      parseError.value = t.value.smartUpload.platformMismatch
+      return
+    }
+    appInfo.value = result.data
+    step.value = 2
+  } else {
+    parseError.value = result.error?.message || t.value.smartUpload.unknownError
   }
 }
 
@@ -335,50 +316,27 @@ async function handleUpload() {
   uploadProgress.value = 0
   uploadResult.value = null
 
-  try {
-    const xhr = new XMLHttpRequest()
-
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        uploadProgress.value = Math.round((e.loaded / e.total) * 100)
-      }
-    })
-
-    const response = await new Promise<any>((resolve, reject) => {
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200 || xhr.status === 201) {
-          resolve(JSON.parse(xhr.responseText))
-        } else if (xhr.status === 401 || xhr.status === 403) {
-          reject(new Error('AUTH_ERROR'))
-        } else {
-          reject(new Error(`HTTP ${xhr.status}`))
-        }
-      })
-      xhr.addEventListener('error', () => reject(new Error('Network error')))
-      xhr.open('POST', uploadBaseURL.value + '/upload')
-      xhr.setRequestHeader('X-Auth-Token', props.token)
-      xhr.send(fd)
-    })
-
-    uploadResult.value = response
-    if (response.ok) {
-      setTimeout(() => {
-        emit('success')
-        resetForm()
-      }, 2000)
+  const response = await uploadWithProgress({
+    url: uploadBaseURL.value + '/upload',
+    token: props.token,
+    formData: fd,
+    onProgress: (percent) => {
+      uploadProgress.value = percent
+    },
+    onAuthError: () => {
+      props.onAuthError(new Response(null, { status: 401 }))
     }
-  } catch (error: any) {
-    if (error.message === 'AUTH_ERROR') {
-      const fakeRes = new Response(null, { status: 401 })
-      props.onAuthError(fakeRes)
-      return
-    }
-    uploadResult.value = {
-      ok: false,
-      error: { message: error.message }
-    }
-  } finally {
-    uploading.value = false
+  })
+
+  uploading.value = false
+  if (response.error?.message === 'AUTH_ERROR') return
+
+  uploadResult.value = response
+  if (response.ok) {
+    setTimeout(() => {
+      emit('success')
+      resetForm()
+    }, 2000)
   }
 }
 

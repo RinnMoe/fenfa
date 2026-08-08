@@ -1,58 +1,59 @@
 <template>
-  <Teleport to="body">
-    <transition name="dialog">
-      <div v-if="show" class="dialog-overlay" @click="$emit('close')">
-        <div class="dialog-container distribution-modal" @click.stop>
-          <div class="dialog-header">
-            <h3 class="dialog-title">{{ t.apps.viewDistribution }}</h3>
-            <button class="close-btn" aria-label="Close" @click="$emit('close')">×</button>
-          </div>
-          <div class="dialog-body">
-            <div v-if="loading" class="loading-state">{{ t.common.loading }}</div>
-            <div v-else>
-              <div class="product-line">
-                <strong>{{ product?.name || product?.id }}</strong>
-              </div>
-              <div class="desc">{{ t.apps.distributionDesc }}</div>
-              <div class="link-list">
-                <div v-for="(d, idx) in domains" :key="idx" class="link-row">
-                  <span class="domain-label">{{ idx === 0 ? t.apps.primaryDomain : t.apps.secondaryDomain }}</span>
-                  <span class="url-text">{{ buildUrl(d) }}</span>
-                  <div class="row-actions">
-                    <button class="btn-sm" @click="copy(buildUrl(d))">
-                      <Icon name="copy" :size="13" />
-                      {{ copiedUrl === buildUrl(d) ? t.apps.copied : t.apps.copyUrl }}
-                    </button>
-                    <button class="btn-sm" @click="showQR(buildUrl(d))">
-                      <Icon name="qr-code" :size="13" />
-                      {{ t.apps.qrCode }}
-                    </button>
-                  </div>
-                </div>
-                <div v-if="qrUrl" class="qr-area">
-                  <canvas ref="qrCanvas" width="140" height="140"></canvas>
-                  <div class="qr-title">{{ t.apps.qrFor }}</div>
-                  <div class="qr-url">{{ qrUrl }}</div>
-                  <div class="qr-hint">{{ t.apps.qrHint }}</div>
-                </div>
-              </div>
+  <n-modal
+    :show="show"
+    preset="card"
+    :style="{ width: '680px', maxWidth: 'calc(100vw - 32px)' }"
+    @update:show="handleShow"
+  >
+    <template #header>
+      <h3 class="dialog-title">{{ t.apps.viewDistribution }}</h3>
+    </template>
+
+    <div class="dialog-body">
+      <div v-if="loading" class="loading-state">{{ t.common.loading }}</div>
+      <div v-else>
+        <div class="product-line">
+          <strong>{{ product?.name || product?.id }}</strong>
+        </div>
+        <div class="desc">{{ t.apps.distributionDesc }}</div>
+        <div class="link-list">
+          <div v-for="(d, idx) in domains" :key="idx" class="link-row">
+            <span class="domain-label">{{ idx === 0 ? t.apps.primaryDomain : t.apps.secondaryDomain }}</span>
+            <span class="url-text">{{ buildUrl(d) }}</span>
+            <div class="row-actions">
+              <button class="btn-sm" @click="copy(buildUrl(d))">
+                <Icon name="copy" :size="13" />
+                {{ copiedUrl === buildUrl(d) ? t.apps.copied : t.apps.copyUrl }}
+              </button>
+              <button class="btn-sm" @click="showQR(buildUrl(d))">
+                <Icon name="qr-code" :size="13" />
+                {{ t.apps.qrCode }}
+              </button>
             </div>
           </div>
-          <div class="dialog-footer">
-            <button class="btn-secondary" @click="$emit('close')">{{ t.common.close }}</button>
+          <div v-if="qrUrl" class="qr-area">
+            <canvas ref="qrCanvas" width="140" height="140"></canvas>
+            <div class="qr-title">{{ t.apps.qrFor }}</div>
+            <div class="qr-url">{{ qrUrl }}</div>
+            <div class="qr-hint">{{ t.apps.qrHint }}</div>
           </div>
         </div>
       </div>
-    </transition>
-  </Teleport>
+    </div>
+
+    <template #footer>
+      <button class="btn-secondary" @click="$emit('close')">{{ t.common.close }}</button>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { NModal } from 'naive-ui'
 import { useI18n } from '../i18n'
 import QRCode from 'qrcode'
 import Icon from './Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 interface ProductLite { id: string; name?: string; slug?: string }
 
@@ -84,7 +85,7 @@ const qrCanvas = ref<HTMLCanvasElement | null>(null)
 async function fetchSettings() {
   loading.value = true
   try {
-    const res = await fetch(adminURL('api/settings'), { headers: { 'X-Auth-Token': props.token } })
+    const res = await adminFetch('api/settings', { token: props.token })
     const j = await res.json()
     if (res.ok && j.ok) {
       settings.value = j.data
@@ -110,6 +111,10 @@ async function showQR(url: string) {
   if (qrCanvas.value) {
     QRCode.toCanvas(qrCanvas.value, url, { width: 180, margin: 1 })
   }
+}
+
+function handleShow(next: boolean) {
+  if (!next) emit('close')
 }
 
 watch(() => props.show, (v) => {

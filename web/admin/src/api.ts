@@ -12,3 +12,15 @@ const adminPath = (window.__FENFA_ADMIN_PATH__ || 'admin').replace(/^\/+|\/+$/g,
 export function adminURL(path: string): string {
   return `/${adminPath}/${path.replace(/^\/+/, '')}`
 }
+
+export interface AdminFetchOptions extends RequestInit {
+  token?: string
+}
+
+/** Same-origin admin API fetch with the admin path and optional X-Auth-Token header. */
+export function adminFetch(path: string, options: AdminFetchOptions = {}) {
+  const headers = new Headers(options.headers)
+  if (options.token) headers.set('X-Auth-Token', options.token)
+  const { token: _token, ...fetchOptions } = options
+  return fetch(adminURL(path), { ...fetchOptions, headers })
+}

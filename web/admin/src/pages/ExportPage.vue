@@ -81,7 +81,7 @@ import { useProducts } from '../composables/useProducts'
 import { useToast } from '../composables/useToast'
 import { useProductVariantSelector } from '../composables/useProductVariantSelector'
 import Icon from '../components/Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const { t } = useI18n()
 const { token, handleAuthError } = useAuth()
@@ -101,11 +101,11 @@ async function handleExport(type: string) {
   if (from.value) p.set('from', from.value)
   if (to.value) p.set('to', to.value)
 
-  const path = adminURL(`exports/${type}.csv`)
+  const path = `exports/${type}.csv`
   const url = path + (p.toString() ? ('?' + p.toString()) : '')
 
   try {
-    const r = await fetch(url, { headers: { 'X-Auth-Token': token.value } })
+    const r = await adminFetch(url, { token: token.value })
     if (handleAuthError(r)) return
     if (!r.ok) throw new Error('HTTP ' + r.status)
     const blob = await r.blob()

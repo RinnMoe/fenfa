@@ -71,48 +71,20 @@
                 </td>
                 <td class="date">{{ new Date(product.created_at).toLocaleDateString() }}</td>
                 <td class="actions" @click.stop>
-                  <div class="dropdown">
+                  <n-dropdown
+                    trigger="click"
+                    placement="bottom-end"
+                    :options="productMenuOptions(product)"
+                    @select="(key) => handleProductMenuSelect(key, product)"
+                  >
                     <button
                       class="btn-icon"
                       type="button"
                       :aria-label="t.apps.actions"
-                      @click="toggleProductMenu(product.id)"
                     >
                       <Icon name="more-vertical" :size="16" />
                     </button>
-                    <div v-if="openProductMenuId === product.id" class="dropdown-menu">
-                      <button class="dropdown-item" @click="openDistribution(product)">
-                        <Icon name="external-link" :size="14" />
-                        {{ t.apps.viewDistribution }}
-                      </button>
-                      <button class="dropdown-item" @click="openAnnouncements(product)">
-                        <Icon name="info" :size="14" />
-                        {{ t.apps.announcements }}
-                      </button>
-                      <div class="dropdown-divider"></div>
-                      <button
-                        v-if="product.published"
-                        class="dropdown-item"
-                        :disabled="updatingProductId === product.id"
-                        @click="updateProductPublished(product, false)"
-                      >
-                        {{ t.apps.unpublish }}
-                      </button>
-                      <button
-                        v-else
-                        class="dropdown-item"
-                        :disabled="updatingProductId === product.id"
-                        @click="updateProductPublished(product, true)"
-                      >
-                        {{ t.apps.publish }}
-                      </button>
-                      <div class="dropdown-divider"></div>
-                      <button class="dropdown-item danger" @click="deleteProduct(product)">
-                        <Icon name="trash" :size="14" />
-                        {{ t.apps.deleteProduct }}
-                      </button>
-                    </div>
-                  </div>
+                  </n-dropdown>
                 </td>
               </tr>
 
@@ -196,45 +168,20 @@
                                   <Icon name="upload" :size="13" />
                                   {{ t.apps.uploadNewVersion }}
                                 </button>
-                                <div class="dropdown">
+                                <n-dropdown
+                                  trigger="click"
+                                  placement="bottom-end"
+                                  :options="variantMenuOptions(variant)"
+                                  @select="(key) => handleVariantMenuSelect(key, variant)"
+                                >
                                   <button
                                     class="btn-icon"
                                     type="button"
                                     :aria-label="t.apps.actions"
-                                    @click="toggleVariantMenu(variant.id)"
                                   >
                                     <Icon name="more-vertical" :size="16" />
                                   </button>
-                                  <div v-if="openVariantMenuId === variant.id" class="dropdown-menu">
-                                    <button class="dropdown-item" @click="router.push('/stats/' + variant.id)">
-                                      {{ t.apps.viewStats }}
-                                    </button>
-                                    <button class="dropdown-item" @click="router.push('/events/' + variant.id)">
-                                      {{ t.apps.viewEvents }}
-                                    </button>
-                                    <div class="dropdown-divider"></div>
-                                    <button
-                                      v-if="variant.published"
-                                      class="dropdown-item"
-                                      :disabled="updatingVariantId === variant.id"
-                                      @click="updateVariantPublished(variant, false)"
-                                    >
-                                      {{ t.apps.unpublish }}
-                                    </button>
-                                    <button
-                                      v-else
-                                      class="dropdown-item"
-                                      :disabled="updatingVariantId === variant.id"
-                                      @click="updateVariantPublished(variant, true)"
-                                    >
-                                      {{ t.apps.publish }}
-                                    </button>
-                                    <div class="dropdown-divider"></div>
-                                    <button class="dropdown-item danger" @click="deleteVariant(variant)">
-                                      {{ t.apps.deleteVariant }}
-                                    </button>
-                                  </div>
-                                </div>
+                                </n-dropdown>
                               </div>
                             </td>
                           </tr>
@@ -306,15 +253,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { NDropdown } from 'naive-ui'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useProducts } from '../composables/useProducts'
 import { useToast } from '../composables/useToast'
 import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from '../components/Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 import UploadModal from '../components/UploadModal.vue'
 import DistributionModal from '../components/DistributionModal.vue'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
@@ -353,8 +301,6 @@ const showDistributionModal = ref(false)
 const showAnnouncementModal = ref(false)
 const showCreateProduct = ref(false)
 const showCreateVariant = ref(false)
-const openProductMenuId = ref('')
-const openVariantMenuId = ref('')
 const selectedProduct = ref<any>(null)
 const selectedVariant = ref<any>(null)
 const selectedDistributionProduct = ref<any>(null)
@@ -372,22 +318,58 @@ const newProduct = reactive({
   description: ''
 })
 
-// Close dropdown on outside click
-function handleGlobalClick() {
-  openProductMenuId.value = ''
-  openVariantMenuId.value = ''
+function productMenuOptions(product: ProductSummary) {
+  return [
+    { label: t.value.apps.viewDistribution, key: 'distribution' },
+    { label: t.value.apps.announcements, key: 'announcements' },
+    { type: 'divider', key: 'divider1' },
+    {
+      label: product.published ? t.value.apps.unpublish : t.value.apps.publish,
+      key: 'publish',
+      disabled: updatingProductId.value === product.id
+    },
+    { type: 'divider', key: 'divider2' },
+    { label: t.value.apps.deleteProduct, key: 'delete' }
+  ]
 }
-onMounted(() => document.addEventListener('click', handleGlobalClick))
-onUnmounted(() => document.removeEventListener('click', handleGlobalClick))
 
-function toggleProductMenu(id: string) {
-  openProductMenuId.value = openProductMenuId.value === id ? '' : id
-  openVariantMenuId.value = ''
+function variantMenuOptions(variant: any) {
+  return [
+    { label: t.value.apps.viewStats, key: 'stats' },
+    { label: t.value.apps.viewEvents, key: 'events' },
+    { type: 'divider', key: 'divider1' },
+    {
+      label: variant.published ? t.value.apps.unpublish : t.value.apps.publish,
+      key: 'publish',
+      disabled: updatingVariantId.value === variant.id
+    },
+    { type: 'divider', key: 'divider2' },
+    { label: t.value.apps.deleteVariant, key: 'delete' }
+  ]
 }
 
-function toggleVariantMenu(id: string) {
-  openVariantMenuId.value = openVariantMenuId.value === id ? '' : id
-  openProductMenuId.value = ''
+function handleProductMenuSelect(key: string, product: ProductSummary) {
+  if (key === 'distribution') {
+    openDistribution(product)
+  } else if (key === 'announcements') {
+    openAnnouncements(product)
+  } else if (key === 'publish') {
+    updateProductPublished(product, !product.published)
+  } else if (key === 'delete') {
+    deleteProduct(product)
+  }
+}
+
+function handleVariantMenuSelect(key: string, variant: any) {
+  if (key === 'stats') {
+    router.push('/stats/' + variant.id)
+  } else if (key === 'events') {
+    router.push('/events/' + variant.id)
+  } else if (key === 'publish') {
+    updateVariantPublished(variant, !variant.published)
+  } else if (key === 'delete') {
+    deleteVariant(variant)
+  }
 }
 
 function platformLabel(platform: string): string {
@@ -412,8 +394,8 @@ watch(localQuery, (value) => {
 })
 
 async function fetchProductDetail(productId: string) {
-  const res = await fetch(adminURL(`api/products/${productId}`), {
-    headers: { 'X-Auth-Token': token.value }
+  const res = await adminFetch(`api/products/${productId}`, {
+    token: token.value
   })
   if (handleAuthError(res)) return null
   const payload = await res.json()
@@ -482,11 +464,11 @@ async function createProduct() {
 
   creatingProduct.value = true
   try {
-    const res = await fetch(adminURL('api/products'), {
+    const res = await adminFetch('api/products', {
       method: 'POST',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         name: newProduct.name,
@@ -522,11 +504,11 @@ async function createVariant() {
 
   creatingVariant.value = true
   try {
-    const res = await fetch(adminURL(`api/products/${activeProduct.value.product.id}/variants`), {
+    const res = await adminFetch(`api/products/${activeProduct.value.product.id}/variants`, {
       method: 'POST',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         platform: newVariant.platform,
@@ -565,15 +547,13 @@ async function updateVariantPublished(variant: any, published: boolean) {
   })
   if (!confirmed) return
 
-  openVariantMenuId.value = ''
-  openProductMenuId.value = ''
   updatingVariantId.value = variant.id
   try {
-    const res = await fetch(adminURL(`api/variants/${variant.id}`), {
+    const res = await adminFetch(`api/variants/${variant.id}`, {
       method: 'PUT',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ published })
     })
@@ -599,11 +579,11 @@ async function updateVariantPublished(variant: any, published: boolean) {
 async function updateReleaseForceUpdate(release: any, forceUpdate: boolean) {
   updatingReleaseId.value = release.id
   try {
-    const res = await fetch(adminURL(`api/releases/${release.id}`), {
+    const res = await adminFetch(`api/releases/${release.id}`, {
       method: 'PUT',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ force_update: forceUpdate })
     })
@@ -644,9 +624,9 @@ async function deleteProduct(product: ProductSummary) {
   if (!confirmed) return
 
   try {
-    const res = await fetch(adminURL(`api/products/${product.id}`), {
+    const res = await adminFetch(`api/products/${product.id}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': token.value }
+      token: token.value
     })
     if (handleAuthError(res)) return
     const payload = await res.json()
@@ -663,8 +643,6 @@ async function deleteProduct(product: ProductSummary) {
 }
 
 async function deleteVariant(variant: any) {
-  openVariantMenuId.value = ''
-  openProductMenuId.value = ''
   const confirmed = await confirm.show({
     title: t.value.apps.deleteVariant,
     message: t.value.apps.deleteVariantConfirm.replace('{name}', variant.display_name || variant.identifier),
@@ -675,9 +653,9 @@ async function deleteVariant(variant: any) {
   if (!confirmed) return
 
   try {
-    const res = await fetch(adminURL(`api/variants/${variant.id}`), {
+    const res = await adminFetch(`api/variants/${variant.id}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': token.value }
+      token: token.value
     })
     if (handleAuthError(res)) return
     const payload = await res.json()
@@ -707,11 +685,11 @@ async function updateProductPublished(product: ProductSummary, published: boolea
 
   updatingProductId.value = product.id
   try {
-    const res = await fetch(adminURL(`api/products/${product.id}`), {
+    const res = await adminFetch(`api/products/${product.id}`, {
       method: 'PUT',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ published })
     })

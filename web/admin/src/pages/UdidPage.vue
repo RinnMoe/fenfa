@@ -106,7 +106,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import Pagination from '../components/Pagination.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const { token, handleAuthError: onAuthError } = useAuth()
 
@@ -144,7 +144,7 @@ const someSelected = computed(() => selectedIds.value.length > 0 && !allSelected
 
 async function fetchIOSVariants() {
   try {
-    const r = await fetch(adminURL('api/ios_variants'), { headers: { 'X-Auth-Token': token.value } })
+    const r = await adminFetch('api/ios_variants', { token: token.value })
     if (onAuthError(r)) return
     const j = await r.json()
     iosVariants.value = j?.data?.items || []
@@ -167,8 +167,7 @@ function params() {
 async function fetchList() {
   loading.value = true
   try {
-    const url = adminURL('api/ios_devices?') + params().toString()
-    const r = await fetch(url, { headers: { 'X-Auth-Token': token.value } })
+    const r = await adminFetch('api/ios_devices?' + params().toString(), { token: token.value })
 
     if (onAuthError(r)) return
 
@@ -183,10 +182,9 @@ async function fetchList() {
 }
 
 async function exportCsv() {
-  const path = adminURL('exports/ios_devices.csv')
-  const url = path + '?' + params().toString()
+  const url = 'exports/ios_devices.csv?' + params().toString()
   try {
-    const r = await fetch(url, { headers: { 'X-Auth-Token': token.value } })
+    const r = await adminFetch(url, { token: token.value })
 
     if (onAuthError(r)) return
     if (!r.ok) throw new Error('HTTP ' + r.status)
@@ -212,7 +210,7 @@ function formatTs(v: string | number | Date | null) {
 // Check if Apple API is configured
 async function checkAppleStatus() {
   try {
-    const r = await fetch(adminURL('api/apple/status'), { headers: { 'X-Auth-Token': token.value } })
+    const r = await adminFetch('api/apple/status', { token: token.value })
     if (!r.ok) return
     const j = await r.json()
     appleConfigured.value = j?.data?.configured || false
@@ -247,9 +245,9 @@ async function registerDevice(device: any) {
   successMessage.value = ''
 
   try {
-    const r = await fetch(adminURL(`api/devices/${device.id}/register-apple`), {
+    const r = await adminFetch(`api/devices/${device.id}/register-apple`, {
       method: 'POST',
-      headers: { 'X-Auth-Token': token.value }
+      token: token.value
     })
 
     if (onAuthError(r)) return
@@ -279,11 +277,11 @@ async function batchRegister() {
   successMessage.value = ''
 
   try {
-    const r = await fetch(adminURL('api/devices/register-apple'), {
+    const r = await adminFetch('api/devices/register-apple', {
       method: 'POST',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ device_ids: selectedIds.value })
     })

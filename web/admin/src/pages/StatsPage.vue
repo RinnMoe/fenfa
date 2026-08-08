@@ -77,7 +77,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useProducts } from '../composables/useProducts'
 import { useProductVariantSelector } from '../composables/useProductVariantSelector'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const props = defineProps<{
   variantId?: string
@@ -95,8 +95,13 @@ const {
 
 const loading = ref(false)
 const statsData = ref<any>(null)
+let skipRouteStatsFetch = false
 
 watch(selectedVariantId, (value) => {
+  if (skipRouteStatsFetch) {
+    skipRouteStatsFetch = false
+    return
+  }
   if (value) fetchStats(value)
   else statsData.value = null
 })
@@ -105,8 +110,8 @@ async function fetchStats(variantId: string) {
   loading.value = true
   statsData.value = null
   try {
-    const res = await fetch(adminURL(`api/variants/${variantId}/stats`), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch(`api/variants/${variantId}/stats`, {
+      token: token.value
     })
     if (handleAuthError(res)) return
     const payload = await res.json()
@@ -123,7 +128,9 @@ async function fetchStats(variantId: string) {
 // Handle route param for variant ID
 const initVariantId = props.variantId || (route.params.variantId as string)
 if (initVariantId) {
+  skipRouteStatsFetch = true
   initFromVariantId(initVariantId).then(data => {
+    skipRouteStatsFetch = false
     if (data) statsData.value = data
   })
 }

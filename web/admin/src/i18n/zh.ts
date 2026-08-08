@@ -460,7 +460,7 @@ export default {
     title: '公告',
     product: '产品',
     create: '创建公告',
-    title: '标题',
+    titleLabel: '标题',
     titlePlaceholder: '公告标题',
     content: '内容',
     contentPlaceholder: '公告内容',

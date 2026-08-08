@@ -1,32 +1,9 @@
 <template>
-  <Teleport to="body">
-    <div class="toast-container">
-      <transition-group name="toast">
-        <div
-          v-for="toast in toasts"
-          :key="toast.id"
-          :class="['toast', `toast-${toast.type}`]"
-        >
-          <div class="toast-icon">
-            <Icon v-if="toast.type === 'success'" name="check" :size="14" />
-            <Icon v-else-if="toast.type === 'error'" name="x" :size="14" />
-            <Icon v-else-if="toast.type === 'warning'" name="alert-triangle" :size="14" />
-            <Icon v-else name="info" :size="14" />
-          </div>
-          <div class="toast-content">
-            <div class="toast-title" v-if="toast.title">{{ toast.title }}</div>
-            <div class="toast-message">{{ toast.message }}</div>
-          </div>
-          <button class="toast-close" @click="removeToast(toast.id)">×</button>
-        </div>
-      </transition-group>
-    </div>
-  </Teleport>
+  <span class="toast-bridge" aria-hidden="true"></span>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import Icon from './Icon.vue'
+import { useMessage } from 'naive-ui'
 
 export interface Toast {
   id: number
@@ -36,29 +13,26 @@ export interface Toast {
   duration?: number
 }
 
-const toasts = ref<Toast[]>([])
-let nextId = 1
+const message = useMessage()
 
 function addToast(toast: Omit<Toast, 'id'>) {
-  const id = nextId++
-  const newToast: Toast = { id, ...toast }
-  toasts.value.push(newToast)
-
-  const duration = toast.duration || 3000
-  if (duration > 0) {
-    setTimeout(() => {
-      removeToast(id)
-    }, duration)
+  const content = toast.title ? `${toast.title} ${toast.message}` : toast.message
+  const options = {
+    duration: toast.duration || 3000
   }
-
-  return id
+  if (toast.type === 'success') {
+    message.success(content, options)
+  } else if (toast.type === 'error') {
+    message.error(content, options)
+  } else if (toast.type === 'warning') {
+    message.warning(content, options)
+  } else {
+    message.info(content, options)
+  }
 }
 
 function removeToast(id: number) {
-  const index = toasts.value.findIndex(t => t.id === id)
-  if (index > -1) {
-    toasts.value.splice(index, 1)
-  }
+  void id
 }
 
 defineExpose({

@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/static/admin/',
   resolve: {
     alias: {
       // Use the full build of Vue that includes the runtime compiler
@@ -31,6 +32,12 @@ export default defineConfig({
       input: 'index.html',
       output: {
         entryFileNames: 'app.js',
+        chunkFileNames: (chunkInfo) => {
+          const name = String(chunkInfo.name || 'chunk')
+            .replace(/^_+/, 'chunk-')
+            .replace(/[^a-zA-Z0-9_-]/g, '-')
+          return `assets/${name}-[hash].js`
+        },
         assetFileNames: (chunkInfo) => {
           if (chunkInfo.name && chunkInfo.name.endsWith('.css')) return 'style.css'
           return '[name][extname]'

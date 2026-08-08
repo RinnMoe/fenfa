@@ -248,7 +248,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useToast } from '../composables/useToast'
 import Icon from '../components/Icon.vue'
-import { adminURL } from '../api'
+import { adminFetch } from '../api'
 
 const { token, handleAuthError: onAuthError } = useAuth()
 
@@ -306,8 +306,8 @@ function isValidDomain(domain: string): boolean {
 async function loadSettings() {
   loading.value = true
   try {
-    const res = await fetch(adminURL('api/settings'), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch('api/settings', {
+      token: token.value
     })
     if (onAuthError(res)) return
     if (!res.ok) {
@@ -403,11 +403,11 @@ async function handleSave() {
     if (appleForm.teamId) payload.apple_team_id = appleForm.teamId
     if (appleForm.privateKey) payload.apple_private_key = appleForm.privateKey
 
-    const res = await fetch(adminURL('api/settings'), {
+    const res = await adminFetch('api/settings', {
       method: 'PUT',
+      token: token.value,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Token': token.value
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     })
@@ -454,8 +454,8 @@ async function handleSave() {
 
 async function checkAppleStatus() {
   try {
-    const res = await fetch(adminURL('api/apple/status'), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch('api/apple/status', {
+      token: token.value
     })
     if (!res.ok) return
     const data = await res.json()
@@ -483,8 +483,8 @@ function handlePrivateKeyFile(event: Event) {
 async function testAppleConnection() {
   testingConnection.value = true
   try {
-    const res = await fetch(adminURL('api/apple/status'), {
-      headers: { 'X-Auth-Token': token.value }
+    const res = await adminFetch('api/apple/status', {
+      token: token.value
     })
     if (onAuthError(res)) return
     const data = await res.json()
