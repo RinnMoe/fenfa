@@ -46,6 +46,19 @@ func (c *Client) Upload(ctx context.Context, key string, body io.Reader, content
 	return nil
 }
 
+// Delete removes an object from S3/R2.
+func (c *Client) Delete(ctx context.Context, key string) error {
+	input := &s3.DeleteObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	}
+	_, err := c.client.DeleteObject(ctx, input)
+	if err != nil {
+		return fmt.Errorf("s3 delete %s: %w", key, err)
+	}
+	return nil
+}
+
 // HeadObject checks if an object exists.
 func (c *Client) HeadObject(ctx context.Context, key string) (bool, error) {
 	_, err := c.client.HeadObject(ctx, &s3.HeadObjectInput{
