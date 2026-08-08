@@ -33,7 +33,12 @@ type adminProductInput struct {
 }
 
 type adminReleaseInput struct {
-	ForceUpdate *bool `json:"force_update"`
+	Version     *string `json:"version"`
+	Build       *int64  `json:"build"`
+	Channel     *string `json:"channel"`
+	MinOS       *string `json:"min_os"`
+	Changelog   *string `json:"changelog"`
+	ForceUpdate *bool   `json:"force_update"`
 }
 
 func AdminListProducts(db *gorm.DB) gin.HandlerFunc {
@@ -117,19 +122,7 @@ func AdminGetProduct(db *gorm.DB) gin.HandlerFunc {
 		for _, variant := range variants {
 			releases := make([]gin.H, 0, len(releaseMap[variant.ID]))
 			for _, release := range releaseMap[variant.ID] {
-				item := gin.H{
-					"id":             release.ID,
-					"version":        release.Version,
-					"build":          release.Build,
-					"created_at":     release.CreatedAt,
-					"download_count": release.DownloadCount,
-					"channel":        release.Channel,
-					"force_update":   release.ForceUpdate,
-					"min_os":         release.MinOS,
-					"changelog":      release.Changelog,
-					"file_ext":       release.FileExt,
-					"file_name":      release.FileName,
-				}
+				item := adminReleasePayload(release)
 				if profile, ok := profileMap[release.ID]; ok {
 					item["provisioning_profile"] = formatProvisioningProfile(profile)
 				}
@@ -621,12 +614,34 @@ func AdminDeleteVariant(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func adminReleasePayload(release store.Release) gin.H {
+	return gin.H{
+		"id":             release.ID,
+		"version":        release.Version,
+		"build":          release.Build,
+		"created_at":     release.CreatedAt,
+		"download_count": release.DownloadCount,
+		"channel":        release.Channel,
+		"force_update":   release.ForceUpdate,
+		"min_os":         release.MinOS,
+		"changelog":      release.Changelog,
+		"file_ext":       release.FileExt,
+		"file_name":      release.FileName,
+		"size_bytes":     release.SizeBytes,
+		"sha256":         release.SHA256,
+	}
+}
+
 func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		releaseID := c.Param("releaseID")
 		var input adminReleaseInput
-		if err := c.ShouldBindJSON(&input); err != nil || input.ForceUpdate == nil {
+		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "invalid release payload"}})
+			return
+		}
+		if input.Version == nil && input.Build == nil && input.Channel == nil && input.MinOS == nil && input.Changelog == nil && input.ForceUpdate == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "release payload is empty"}})
 			return
 		}
 
@@ -636,7 +651,50 @@ func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.Model(&release).Update("force_update", *input.ForceUpdate).Error; err != nil {
+		updates := map[string]any{}
+		if input.Version != nil {
+			version := strings.TrimSpace(*input.Version)
+			if version == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "version cannot be empty"}})
+				return
+			}
+			if len(version) > 64 {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "version is too long"}})
+				return
+			}
+			updates["version"] = version
+		}
+		if input.Build != nil {
+			if *input.Build < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "build cannot be negative"}})
+				return
+			}
+			updates["build"] = *input.Build
+		}
+		if input.Channel != nil {
+			channel := strings.TrimSpace(*input.Channel)
+			if len(channel) > 64 {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "channel is too long"}})
+				return
+			}
+			updates["channel"] = channel
+		}
+		if input.MinOS != nil {
+			minOS := strings.TrimSpace(*input.MinOS)
+			if len(minOS) > 64 {
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "min_os is too long"}})
+				return
+			}
+			updates["min_os"] = minOS
+		}
+		if input.Changelog != nil {
+			updates["changelog"] = *input.Changelog
+		}
+		if input.ForceUpdate != nil {
+			updates["force_update"] = *input.ForceUpdate
+		}
+
+		if err := db.Model(&release).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
 			return
 		}
@@ -645,14 +703,9 @@ func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
 			return
 		}
+		writeReleaseMetaFile(db, release)
 
-		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{"release": gin.H{
-			"id":           release.ID,
-			"version":      release.Version,
-			"build":        release.Build,
-			"force_update": release.ForceUpdate,
-			"created_at":   release.CreatedAt,
-		}}})
+		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{"release": adminReleasePayload(release)}})
 	}
 }
 

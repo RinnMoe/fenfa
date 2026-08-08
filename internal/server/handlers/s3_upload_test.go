@@ -22,6 +22,7 @@ type fakeS3StorageClient struct {
 	deleteKeys []string
 	uploadErr  error
 	deleteErr  error
+	getErr     error
 }
 
 func (f *fakeS3StorageClient) Upload(ctx context.Context, key string, body io.Reader, contentType string) error {
@@ -41,6 +42,13 @@ func (f *fakeS3StorageClient) Delete(ctx context.Context, key string) error {
 	}
 	f.deleteKeys = append(f.deleteKeys, key)
 	return nil
+}
+
+func (f *fakeS3StorageClient) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
+	return io.NopCloser(strings.NewReader("fake")), nil
 }
 
 func useFakeS3StorageClient(t *testing.T, fake *fakeS3StorageClient) {

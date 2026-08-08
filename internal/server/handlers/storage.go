@@ -17,6 +17,7 @@ import (
 type s3StorageClient interface {
 	Upload(ctx context.Context, key string, body io.Reader, contentType string) error
 	Delete(ctx context.Context, key string) error
+	Get(ctx context.Context, key string) (io.ReadCloser, error)
 }
 
 // newS3StorageClient can be replaced in tests with a fake client.

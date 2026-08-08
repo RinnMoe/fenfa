@@ -128,63 +128,152 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="variant in activeProduct.variants" :key="variant.id">
-                            <td>
-                              <div class="platform-cell">
-                                <span class="platform-label">{{ platformLabel(variant.platform) }}</span>
-                                <span class="display-name">{{ variant.display_name || activeProduct.product.name }}</span>
-                              </div>
-                            </td>
-                            <td class="mono">{{ variant.identifier || '-' }}</td>
-                            <td>
-                              <template v-if="variant.releases?.length">
-                                <span class="version">{{ variant.releases[0].version }}</span>
-                                <span v-if="variant.releases[0].build" class="muted">
-                                  ({{ t.upload.build }} {{ variant.releases[0].build }})
-                                </span>
-                              </template>
-                              <span v-else class="muted">-</span>
-                            </td>
-                            <td>
-                              <label v-if="variant.releases?.length" class="switch" :title="t.apps.forceUpdate">
-                                <input
-                                  type="checkbox"
-                                  :checked="!!variant.releases[0].force_update"
-                                  :disabled="updatingReleaseId === variant.releases[0].id"
-                                  @change="updateReleaseForceUpdate(variant.releases[0], ($event.target as HTMLInputElement).checked)"
-                                >
-                                <span class="switch-track"></span>
-                              </label>
-                              <span v-else class="muted">-</span>
-                            </td>
-                            <td>
-                              <span v-if="variant.published" class="status-dot status-on"><i></i>{{ t.apps.published }}</span>
-                              <span v-else class="status-dot status-off"><i></i>{{ t.apps.unpublished }}</span>
-                            </td>
-                            <td class="date">{{ formatDate(variant.releases?.[0]?.created_at) }}</td>
-                            <td class="actions">
-                              <div class="table-actions">
-                                <button class="btn-sm" @click="openUploadModal(activeProduct.product, variant)">
-                                  <Icon name="upload" :size="13" />
-                                  {{ t.apps.uploadNewVersion }}
-                                </button>
-                                <n-dropdown
-                                  trigger="click"
-                                  placement="bottom-end"
-                                  :options="variantMenuOptions(variant)"
-                                  @select="(key) => handleVariantMenuSelect(key, variant)"
-                                >
-                                  <button
-                                    class="btn-icon"
-                                    type="button"
-                                    :aria-label="t.apps.actions"
+                          <template v-for="variant in activeProduct.variants" :key="variant.id">
+                            <tr class="variant-row">
+                              <td>
+                                <div class="platform-cell">
+                                  <span class="platform-label">{{ platformLabel(variant.platform) }}</span>
+                                  <span class="display-name">{{ variant.display_name || activeProduct.product.name }}</span>
+                                </div>
+                              </td>
+                              <td class="mono">{{ variant.identifier || '-' }}</td>
+                              <td>
+                                <template v-if="variant.releases?.length">
+                                  <span class="version">{{ variant.releases[0].version }}</span>
+                                  <span v-if="variant.releases[0].build" class="muted">
+                                    ({{ t.upload.build }} {{ variant.releases[0].build }})
+                                  </span>
+                                </template>
+                                <span v-else class="muted">-</span>
+                              </td>
+                              <td>
+                                <label v-if="variant.releases?.length" class="switch" :title="t.apps.forceUpdate">
+                                  <input
+                                    type="checkbox"
+                                    :checked="!!variant.releases[0].force_update"
+                                    :disabled="updatingReleaseId === variant.releases[0].id"
+                                    @change="updateReleaseForceUpdate(variant.releases[0], ($event.target as HTMLInputElement).checked)"
                                   >
-                                    <Icon name="more-vertical" :size="16" />
+                                  <span class="switch-track"></span>
+                                </label>
+                                <span v-else class="muted">-</span>
+                              </td>
+                              <td>
+                                <span v-if="variant.published" class="status-dot status-on"><i></i>{{ t.apps.published }}</span>
+                                <span v-else class="status-dot status-off"><i></i>{{ t.apps.unpublished }}</span>
+                              </td>
+                              <td class="date">{{ formatDate(variant.releases?.[0]?.created_at) }}</td>
+                              <td class="actions">
+                                <div class="table-actions">
+                                  <button class="btn-sm" @click="openUploadModal(activeProduct.product, variant)">
+                                    <Icon name="upload" :size="13" />
+                                    {{ t.apps.uploadNewVersion }}
                                   </button>
-                                </n-dropdown>
-                              </div>
-                            </td>
-                          </tr>
+                                  <button
+                                    v-if="variant.releases?.length"
+                                    class="btn-icon"
+                                    :class="{ active: expandedVariants.includes(variant.id) }"
+                                    :aria-label="t.apps.releaseHistory"
+                                    @click="toggleReleaseHistory(variant.id)"
+                                  >
+                                    <Icon :name="expandedVariants.includes(variant.id) ? 'chevron-down' : 'chevron-right'" :size="16" />
+                                  </button>
+                                  <n-dropdown
+                                    trigger="click"
+                                    placement="bottom-end"
+                                    :options="variantMenuOptions(variant)"
+                                    @select="(key) => handleVariantMenuSelect(key, variant)"
+                                  >
+                                    <button
+                                      class="btn-icon"
+                                      type="button"
+                                      :aria-label="t.apps.actions"
+                                    >
+                                      <Icon name="more-vertical" :size="16" />
+                                    </button>
+                                  </n-dropdown>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr v-if="expandedVariants.includes(variant.id)" class="release-history-row">
+                              <td colspan="7">
+                                <div class="release-history">
+                                  <div class="section-header">
+                                    <div>
+                                      <h3 class="section-title">{{ t.apps.releaseHistory }}</h3>
+                                      <p class="page-subtitle">{{ t.apps.releaseCount.replace('{count}', String(variant.releases?.length || 0)) }}</p>
+                                    </div>
+                                  </div>
+                                  <div class="table-container">
+                                    <table class="table">
+                                      <thead>
+                                        <tr>
+                                          <th>{{ t.stats.version }}</th>
+                                          <th>{{ t.stats.build }}</th>
+                                          <th>{{ t.upload.channel }}</th>
+                                          <th>{{ t.upload.minOS }}</th>
+                                          <th>{{ t.apps.fileName }}</th>
+                                          <th>{{ t.apps.downloads }}</th>
+                                          <th>{{ t.apps.forceUpdate }}</th>
+                                          <th>{{ t.apps.createdAt }}</th>
+                                          <th class="actions">{{ t.apps.actions }}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr
+                                          v-for="release in variant.releases || []"
+                                          :key="release.id"
+                                          :class="{ 'latest-release': release.id === variant.releases?.[0]?.id }"
+                                        >
+                                          <td class="version">{{ release.version }}</td>
+                                          <td>{{ release.build }}</td>
+                                          <td>{{ release.channel || '-' }}</td>
+                                          <td>{{ release.min_os || '-' }}</td>
+                                          <td class="file-cell" :title="release.file_name">{{ release.file_name || '-' }}</td>
+                                          <td class="text-success">{{ release.download_count || 0 }}</td>
+                                          <td>
+                                            <label class="switch" :title="t.apps.forceUpdate">
+                                              <input
+                                                type="checkbox"
+                                                :checked="!!release.force_update"
+                                                :disabled="updatingReleaseId === release.id"
+                                                @change="updateReleaseForceUpdate(release, ($event.target as HTMLInputElement).checked)"
+                                              >
+                                              <span class="switch-track"></span>
+                                            </label>
+                                          </td>
+                                          <td class="date">{{ formatDate(release.created_at) }}</td>
+                                          <td class="actions">
+                                            <div class="table-actions">
+                                              <button class="btn-sm" @click="openEditReleaseModal(variant, release)">
+                                                <Icon name="edit" :size="13" />
+                                                {{ t.apps.editRelease }}
+                                              </button>
+                                              <button class="btn-sm" @click="openReplaceReleaseModal(variant, release)">
+                                                <Icon name="refresh-cw" :size="13" />
+                                                {{ t.apps.replaceFile }}
+                                              </button>
+                                              <button class="btn-sm" @click="downloadReleaseFile(release)">
+                                                <Icon name="download" :size="13" />
+                                                {{ t.apps.downloadFile }}
+                                              </button>
+                                              <button class="btn-sm btn-danger" @click="deleteRelease(release)">
+                                                <Icon name="trash" :size="13" />
+                                                {{ t.apps.deleteRelease }}
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                        <tr v-if="!variant.releases?.length">
+                                          <td colspan="9" class="empty-state">{{ t.apps.noReleases }}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
                         </tbody>
                       </table>
                     </div>
@@ -237,6 +326,21 @@
       @success="handleUploadSuccess"
     />
 
+    <EditReleaseModal
+      :show="showEditReleaseModal"
+      :release="selectedRelease"
+      @close="showEditReleaseModal = false"
+      @success="handleReleaseMutationSuccess"
+    />
+
+    <ReplaceReleaseModal
+      :show="showReplaceReleaseModal"
+      :release="selectedRelease"
+      :variant="selectedVariant"
+      @close="showReplaceReleaseModal = false"
+      @success="handleReleaseMutationSuccess"
+    />
+
     <AnnouncementModal
       :show="showAnnouncementModal"
       :product="selectedAnnouncementProduct"
@@ -264,6 +368,8 @@ import { useConfirmDialog } from '../composables/useConfirmDialog'
 import Icon from '../components/Icon.vue'
 import { adminFetch } from '../api'
 import UploadModal from '../components/UploadModal.vue'
+import EditReleaseModal from '../components/EditReleaseModal.vue'
+import ReplaceReleaseModal from '../components/ReplaceReleaseModal.vue'
 import DistributionModal from '../components/DistributionModal.vue'
 import AnnouncementModal from '../components/AnnouncementModal.vue'
 
@@ -297,14 +403,18 @@ const updatingReleaseId = ref('')
 const creatingProduct = ref(false)
 const creatingVariant = ref(false)
 const showUploadModal = ref(false)
+const showEditReleaseModal = ref(false)
+const showReplaceReleaseModal = ref(false)
 const showDistributionModal = ref(false)
 const showAnnouncementModal = ref(false)
 const showCreateProduct = ref(false)
 const showCreateVariant = ref(false)
 const selectedProduct = ref<any>(null)
 const selectedVariant = ref<any>(null)
+const selectedRelease = ref<any>(null)
 const selectedDistributionProduct = ref<any>(null)
 const selectedAnnouncementProduct = ref<any>(null)
+const expandedVariants = ref<string[]>([])
 
 const newVariant = reactive({
   platform: 'ios',
@@ -444,6 +554,97 @@ function openUploadModal(product: any, variant: any) {
   selectedProduct.value = product
   selectedVariant.value = variant
   showUploadModal.value = true
+}
+
+function toggleReleaseHistory(variantId: string) {
+  if (expandedVariants.value.includes(variantId)) {
+    expandedVariants.value = expandedVariants.value.filter((id) => id !== variantId)
+  } else {
+    expandedVariants.value = [...expandedVariants.value, variantId]
+  }
+}
+
+function openEditReleaseModal(variant: any, release: any) {
+  selectedVariant.value = variant
+  selectedRelease.value = release
+  showEditReleaseModal.value = true
+}
+
+function openReplaceReleaseModal(variant: any, release: any) {
+  selectedVariant.value = variant
+  selectedRelease.value = release
+  showReplaceReleaseModal.value = true
+}
+
+async function handleReleaseMutationSuccess() {
+  showEditReleaseModal.value = false
+  showReplaceReleaseModal.value = false
+  fetchProducts()
+  if (activeProduct.value) {
+    activeProduct.value = await fetchProductDetail(activeProduct.value.product.id)
+  }
+}
+
+async function deleteRelease(release: any) {
+  const confirmed = await confirm.show({
+    title: t.value.apps.deleteRelease,
+    message: t.value.apps.deleteReleaseConfirm
+      .replace('{version}', release.version || '')
+      .replace('{build}', release.build ?? ''),
+    confirmText: t.value.common.delete,
+    cancelText: t.value.common.cancel,
+    type: 'danger'
+  })
+  if (!confirmed) return
+
+  try {
+    const res = await adminFetch(`api/releases/${release.id}`, {
+      method: 'DELETE',
+      token: token.value
+    })
+    if (handleAuthError(res)) return
+    const payload = await res.json()
+    if (!res.ok || !payload.ok) {
+      toast.error(payload.error?.message || t.value.apps.deleteReleaseFailed)
+      return
+    }
+    toast.success(t.value.apps.deleteReleaseSuccess)
+    fetchProducts()
+    if (activeProduct.value) {
+      activeProduct.value = await fetchProductDetail(activeProduct.value.product.id)
+    }
+  } catch (error) {
+    toast.error(String(error))
+  }
+}
+
+async function downloadReleaseFile(release: any) {
+  try {
+    const res = await adminFetch(`api/releases/${release.id}/file`, {
+      token: token.value
+    })
+    if (handleAuthError(res)) return
+    if (!res.ok) {
+      let message = t.value.apps.downloadFileFailed
+      try {
+        const payload = await res.json()
+        message = payload.error?.message || message
+      } catch {}
+      toast.error(message)
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = release.file_name || 'release'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    toast.error(t.value.apps.downloadFileFailed + ': ' + error)
+  }
 }
 
 function openDistribution(product: ProductSummary) {
@@ -753,5 +954,36 @@ async function updateProductPublished(product: ProductSummary, published: boolea
   gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
+}
+
+.release-history-row td {
+  padding: var(--space-3);
+  background: var(--surface-subtle);
+}
+
+.release-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.release-history-row .table {
+  margin: 0;
+}
+
+.latest-release {
+  background: var(--surface-hover);
+}
+
+.file-cell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.variant-row .btn-icon.active {
+  color: var(--text-primary);
+  background: var(--surface-hover);
 }
 </style>

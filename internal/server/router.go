@@ -74,6 +74,8 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	upload.POST("/smart-upload", middleware.RequireToken(cfg, "upload"), handlers.SmartUpload(db, cfg))
 	upload.OPTIONS("/"+adminPath+"/api/parse-app", func(c *gin.Context) { c.Status(204) })
 	upload.POST("/"+adminPath+"/api/parse-app", middleware.RequireToken(cfg, "admin"), handlers.ParseAppInfo())
+	upload.OPTIONS("/"+adminPath+"/api/releases/:releaseID/replace-file", func(c *gin.Context) { c.Status(204) })
+	upload.POST("/"+adminPath+"/api/releases/:releaseID/replace-file", middleware.RequireToken(cfg, "admin"), handlers.AdminReplaceReleaseFile(db, cfg))
 
 	// Admin APIs (under configurable admin path)
 	admin := g.Group("/" + adminPath)
@@ -104,6 +106,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin.DELETE("/api/variants/:variantID", handlers.AdminDeleteVariant(db))
 	admin.PUT("/api/releases/:releaseID", handlers.AdminUpdateRelease(db))
 	admin.DELETE("/api/releases/:releaseID", handlers.AdminDeleteRelease(db))
+	admin.GET("/api/releases/:releaseID/file", handlers.AdminDownloadRelease(db))
 
 	// App publish/unpublish
 	admin.PUT("/api/apps/:appID/publish", handlers.PublishApp(db))

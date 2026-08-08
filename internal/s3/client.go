@@ -59,6 +59,18 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// Get opens a read stream for an S3/R2 object.
+func (c *Client) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	out, err := c.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("s3 get %s: %w", key, err)
+	}
+	return out.Body, nil
+}
+
 // HeadObject checks if an object exists.
 func (c *Client) HeadObject(ctx context.Context, key string) (bool, error) {
 	_, err := c.client.HeadObject(ctx, &s3.HeadObjectInput{

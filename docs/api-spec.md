@@ -135,8 +135,48 @@ GET    /admin/api/variants/:variantID/stats              # Variant download stat
 ### Releases
 
 ```
+PUT    /admin/api/releases/:releaseID                    # Update release metadata
 DELETE /admin/api/releases/:releaseID                    # Delete release
+GET    /admin/api/releases/:releaseID/file               # Download installer (admin only)
 ```
+
+`PUT /admin/api/releases/:releaseID` accepts a JSON body and performs a partial update. At least one field is required. `version` must be non-empty; `build` must be non-negative. Empty strings clear `channel`, `min_os`, and `changelog`.
+
+```json
+{
+  "version": "1.1.0",
+  "build": 10,
+  "channel": "beta",
+  "min_os": "iOS 15.0",
+  "changelog": "Bug fixes",
+  "force_update": true
+}
+```
+
+`GET /admin/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so the admin token stays out of the browser URL.
+
+### Replace Installer
+
+```
+POST /<admin_path>/api/releases/:releaseID/replace-file
+Content-Type: multipart/form-data
+X-Auth-Token: <admin_token>
+```
+
+Replaces the installer payload of an existing release while keeping the release ID and download URL unchanged. Can be sent from the configured upload domain.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `app_file` | yes | New IPA/APK/binary file |
+| `version` | yes | Version string (e.g. "1.0.0") |
+| `build` | no | Build number (integer) |
+| `channel` | no | Channel (e.g. "internal", "beta") |
+| `min_os` | no | Minimum OS version |
+| `changelog` | no | Release notes |
+| `force_update` | no | `true` or `false` |
+| `icon_base64` | no | Data URL/base64 PNG icon to update the product icon |
+
+APK/IPA packages are re-parsed. If the parsed package identifier does not match the variant identifier, the request is rejected with `400`. For iOS, the stored provisioning profile is refreshed from the new IPA.
 
 ### Publishing
 
