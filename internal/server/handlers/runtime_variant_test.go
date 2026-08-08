@@ -115,12 +115,15 @@ func TestDownloadUsesVariantProductWhenLegacyAppIDIsEmpty(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d body=%s", rr.Code, rr.Body.String())
 	}
-	var event store.Event
-	if err := db.Where("type = ? AND release_id = ?", "download", release.ID).Take(&event).Error; err != nil {
-		t.Fatalf("load download event: %v", err)
+	var refreshed store.Release
+	if err := db.Where("id = ?", release.ID).First(&refreshed).Error; err != nil {
+		t.Fatalf("reload release: %v", err)
 	}
-	if event.VariantID != release.VariantID {
-		t.Fatalf("expected download event variant_id %q, got %q", release.VariantID, event.VariantID)
+	if refreshed.DownloadCount != 1 {
+		t.Fatalf("expected download_count 1, got %d", refreshed.DownloadCount)
+	}
+	if refreshed.VariantID != release.VariantID {
+		t.Fatalf("expected release variant_id %q, got %q", release.VariantID, refreshed.VariantID)
 	}
 }
 
@@ -146,14 +149,6 @@ func TestDownloadDoesNotCountMissingFileAsDownload(t *testing.T) {
 	}
 	if refreshed.DownloadCount != 0 {
 		t.Fatalf("expected download_count to remain 0, got %d", refreshed.DownloadCount)
-	}
-
-	var count int64
-	if err := db.Model(&store.Event{}).Where("type = ? AND release_id = ?", "download", release.ID).Count(&count).Error; err != nil {
-		t.Fatalf("count download events: %v", err)
-	}
-	if count != 0 {
-		t.Fatalf("expected no download events for missing file, got %d", count)
 	}
 }
 

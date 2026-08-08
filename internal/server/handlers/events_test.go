@@ -29,82 +29,77 @@ func openEventsTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func TestPostEventAcceptsReleaseOnlyPayload(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func seedVisitVariant(t *testing.T, db *gorm.DB) store.Variant {
+	t.Helper()
 
-	db := openEventsTestDB(t)
-
-	body, err := json.Marshal(map[string]any{
-		"type":       "visit",
-		"variant_id": "var_windows",
-		"release_id": "rel_windows",
-		"extra": map[string]any{
-			"path": "/products/demo-suite",
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal body: %v", err)
+	variant := store.Variant{
+		ID:         "var_visit_windows",
+		ProductID:  "prd_visit_windows",
+		Platform:   "windows",
+		Identifier: "com.example.windows",
+		Published:  true,
 	}
+	if err := db.Create(&variant).Error; err != nil {
+		t.Fatalf("create variant: %v", err)
+	}
+	return variant
+}
 
+func postEvent(db *gorm.DB, body map[string]any) *httptest.ResponseRecorder {
+	raw, _ := json.Marshal(body)
 	rr := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rr)
-	req := httptest.NewRequest(http.MethodPost, "/events", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	c.Request = req
-
+	c.Request = httptest.NewRequest(http.MethodPost, "/events", bytes.NewReader(raw))
+	c.Request.Header.Set("Content-Type", "application/json")
 	PostEvent(db)(c)
+	return rr
+}
 
+func TestPostEventIncrementsVariantVisitCount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openEventsTestDB(t)
+	variant := seedVisitVariant(t, db)
+
+	rr := postEvent(db, map[string]any{
+		"type":       "visit",
+		"variant_id": variant.ID,
+		"release_id": "rel_legacy_payload",
+		"extra":      map[string]any{"path": "/products/example"},
+	})
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d body=%s", rr.Code, rr.Body.String())
 	}
 
-	var event store.Event
-	if err := db.Where("release_id = ?", "rel_windows").First(&event).Error; err != nil {
-		t.Fatalf("expected event stored: %v", err)
+	var got store.Variant
+	if err := db.Where("id = ?", variant.ID).First(&got).Error; err != nil {
+		t.Fatalf("load variant: %v", err)
 	}
-	if event.ReleaseID != "rel_windows" {
-		t.Fatalf("expected release_id rel_windows, got %q", event.ReleaseID)
-	}
-	if event.VariantID != "var_windows" {
-		t.Fatalf("expected variant_id var_windows, got %q", event.VariantID)
-	}
-	if event.AppID != "" {
-		t.Fatalf("expected empty app_id for release-only event, got %q", event.AppID)
+	if got.VisitCount != 1 {
+		t.Fatalf("expected visit_count 1, got %d", got.VisitCount)
 	}
 }
 
-func TestAdminListEventsFiltersByVariantID(t *testing.T) {
+func TestPostEventIgnoresNonVisitAndUnknownVariant(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openEventsTestDB(t)
+	variant := seedVisitVariant(t, db)
 
-	events := []store.Event{
-		{Type: "click", VariantID: "var_a", ReleaseID: "rel_a"},
-		{Type: "click", VariantID: "var_b", ReleaseID: "rel_b"},
+	payloads := []map[string]any{
+		{"type": "click", "variant_id": variant.ID},
+		{"type": "upload", "variant_id": variant.ID},
+		{"type": "unknown", "variant_id": variant.ID},
+		{"type": "visit", "variant_id": "var_missing"},
+		{"type": "visit", "variant_id": ""},
 	}
-	if err := db.Create(&events).Error; err != nil {
-		t.Fatalf("create events: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rr)
-	c.Request = httptest.NewRequest(http.MethodGet, "/admin/api/events?variant_id=var_b", nil)
-
-	AdminListEvents(db)(c)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d body=%s", rr.Code, rr.Body.String())
+	for _, payload := range payloads {
+		postEvent(db, payload)
 	}
 
-	var payload map[string]any
-	if err := json.Unmarshal(rr.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("decode response: %v", err)
+	var got store.Variant
+	if err := db.Where("id = ?", variant.ID).First(&got).Error; err != nil {
+		t.Fatalf("load variant: %v", err)
 	}
-	items := payload["data"].(map[string]any)["items"].([]any)
-	if len(items) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(items))
-	}
-	item := items[0].(map[string]any)
-	if item["variant_id"] != "var_b" {
-		t.Fatalf("expected variant_id var_b, got %v", item["variant_id"])
+	if got.VisitCount != 0 {
+		t.Fatalf("expected visit_count 0, got %d", got.VisitCount)
 	}
 }

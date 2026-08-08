@@ -1,4 +1,4 @@
-import type { ReleaseItem, VariantItem } from '../types'
+import type { VariantItem } from '../types'
 
 function sendBeaconJSON(url: string, payload: any) {
   try {
@@ -16,52 +16,12 @@ function sendBeaconJSON(url: string, payload: any) {
 }
 
 export function useTracking() {
-  async function logVisit(
-    variant: VariantItem,
-    release: ReleaseItem,
-    productID: string,
-    clientPlatform: string,
-    path: string
-  ) {
-    try {
-      const mod: any = await import('ua-parser-js')
-      const UAParser = mod.UAParser || mod.default
-      const parser = new UAParser(navigator.userAgent)
-      sendBeaconJSON('/events', {
-        type: 'visit',
-        variant_id: variant.id,
-        release_id: release.id,
-        extra: {
-          product_id: productID,
-          variant_id: variant.id,
-          ua: parser.getResult(),
-          client_platform: clientPlatform,
-          path
-        }
-      })
-    } catch {}
-  }
-
-  function trackAction(
-    variant: VariantItem,
-    release: ReleaseItem | null,
-    href: string,
-    productID: string,
-    path: string
-  ) {
-    if (!release || !href) return
+  function logVisit(variant: VariantItem) {
     sendBeaconJSON('/events', {
-      type: 'click',
-      variant_id: variant.id,
-      release_id: release.id,
-      extra: {
-        product_id: productID,
-        variant_id: variant.id,
-        href,
-        path
-      }
+      type: 'visit',
+      variant_id: variant.id
     })
   }
 
-  return { logVisit, trackAction }
+  return { logVisit }
 }

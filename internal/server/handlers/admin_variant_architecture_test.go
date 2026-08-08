@@ -63,37 +63,6 @@ func TestExportReleasesFiltersByVariantIDAndIncludesVariantColumn(t *testing.T) 
 	}
 }
 
-func TestExportEventsFiltersByVariantIDAndIncludesVariantColumn(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db := openEventsTestDB(t)
-	if err := db.Create(&[]store.Event{
-		{Type: "download", VariantID: "var_a", ReleaseID: "rel_a", Ts: time.Now()},
-		{Type: "download", VariantID: "var_b", ReleaseID: "rel_b", Ts: time.Now()},
-	}).Error; err != nil {
-		t.Fatalf("create events: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rr)
-	c.Request = httptest.NewRequest(http.MethodGet, "/admin/exports/events.csv?variant_id=var_b", nil)
-
-	ExportEvents(db)(c)
-
-	rows, err := csv.NewReader(strings.NewReader(rr.Body.String())).ReadAll()
-	if err != nil {
-		t.Fatalf("read csv: %v", err)
-	}
-	if len(rows) != 2 {
-		t.Fatalf("expected exactly one exported event, got %v", rows)
-	}
-	if rows[0][3] != "variant_id" {
-		t.Fatalf("expected variant_id column in header, got %v", rows[0])
-	}
-	if rows[1][3] != "var_b" {
-		t.Fatalf("expected exported variant_id var_b, got %v", rows[1])
-	}
-}
-
 func TestAdminListIOSDevicesFiltersByVariantID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openAdminProductsTestDB(t)

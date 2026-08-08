@@ -104,7 +104,6 @@ import QRCodePanel from './components/QRCodePanel.vue'
 
 const { t } = useI18n()
 const {
-  clientPlatform,
   error,
   fetchData,
   getSelectedRelease,
@@ -116,7 +115,7 @@ const {
   sortedVariants
 } = useProduct()
 const { fetchUDIDStatuses, getVariantAction, handlePrimaryAction: handleUDIDAction, udidBound } = useUDID()
-const { logVisit, trackAction } = useTracking()
+const { logVisit } = useTracking()
 
 const pathParts = location.pathname.split('/').filter(Boolean)
 const resourceID = pathParts[1] || ''
@@ -167,9 +166,7 @@ function handlePrimaryAction() {
   if (!activeVariant.value || !activeRelease.value) return
   const variant = activeVariant.value
   const release = activeRelease.value
-  handleUDIDAction(variant, release, action.value, (href) => {
-    trackAction(variant, release, href, productData.value?.product.id || '', location.pathname)
-  })
+  handleUDIDAction(variant, release, action.value)
 }
 
 onMounted(async () => {
@@ -189,7 +186,7 @@ onMounted(async () => {
   const variant = activeVariant.value
   const release = activeRelease.value
   if (variant && release) {
-    await logVisit(variant, release, productData.value.product.id, clientPlatform, location.pathname)
+    logVisit(variant)
   }
 })
 </script>

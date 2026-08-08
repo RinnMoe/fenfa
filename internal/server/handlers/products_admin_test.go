@@ -229,6 +229,9 @@ func TestAdminGetVariantStats(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatalf("create second release: %v", err)
 	}
+	if err := db.Model(&variant).Update("visit_count", 12).Error; err != nil {
+		t.Fatalf("set visit count: %v", err)
+	}
 
 	payload := performAdminJSONRequest(t, AdminGetVariantStats(db), http.MethodGet, "/admin/api/variants/"+variant.ID+"/stats", gin.Params{
 		{Key: "variantID", Value: variant.ID},
@@ -244,16 +247,14 @@ func TestAdminGetVariantStats(t *testing.T) {
 	if variantData["id"] != variant.ID {
 		t.Fatalf("expected variant id %q, got %v", variant.ID, variantData["id"])
 	}
-
-	releases := data["releases"].([]any)
-	if len(releases) != 2 {
-		t.Fatalf("expected 2 releases, got %d", len(releases))
+	if variantData["visit_count"] != float64(12) {
+		t.Fatalf("expected variant visit_count 12, got %v", variantData["visit_count"])
 	}
-	first := releases[0].(map[string]any)
-	if first["version"] != "1.1.0" {
-		t.Fatalf("expected latest release first, got %v", first["version"])
+	stats := data["stats"].(map[string]any)
+	if stats["visit_count"] != float64(12) {
+		t.Fatalf("expected stats visit_count 12, got %v", stats["visit_count"])
 	}
-	if first["download_count"] != float64(88) {
-		t.Fatalf("expected download count 88, got %v", first["download_count"])
+	if stats["download_count"] != float64(88) {
+		t.Fatalf("expected stats download_count 88, got %v", stats["download_count"])
 	}
 }

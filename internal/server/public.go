@@ -63,15 +63,6 @@ func handleDownload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Log download event
-		db.Create(&store.Event{
-			Type:      "download",
-			VariantID: release.VariantID,
-			ReleaseID: release.ID,
-			IP:        c.ClientIP(),
-			UA:        c.GetHeader("User-Agent"),
-		})
-
 		// Increment download count
 		db.Model(&release).Update("download_count", gorm.Expr("download_count + 1"))
 

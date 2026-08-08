@@ -50,7 +50,6 @@ func Download(db *gorm.DB) gin.HandlerFunc {
 				s3Key := strings.TrimPrefix(rel.StoragePath, "s3://")
 				redirectURL := strings.TrimRight(settings.S3PublicURL, "/") + "/" + s3Key
 				_ = db.Model(&rel).UpdateColumn("download_count", gorm.Expr("download_count + 1")).Error
-				_ = db.Create(&store.Event{Type: "download", AppID: rel.AppID, VariantID: rel.VariantID, ReleaseID: rel.ID, IP: c.ClientIP(), UA: c.Request.UserAgent()}).Error
 				c.Redirect(http.StatusFound, redirectURL)
 				return
 			}
@@ -74,7 +73,6 @@ func Download(db *gorm.DB) gin.HandlerFunc {
 		c.Header("Content-Disposition", "attachment; filename=\""+filepath.Base(rel.StoragePath)+"\"")
 		c.Header("Cache-Control", "no-transform")
 		_ = db.Model(&rel).UpdateColumn("download_count", gorm.Expr("download_count + 1")).Error
-		_ = db.Create(&store.Event{Type: "download", AppID: rel.AppID, VariantID: rel.VariantID, ReleaseID: rel.ID, IP: c.ClientIP(), UA: c.Request.UserAgent()}).Error
 
 		c.File(rel.StoragePath) // http.ServeFile supports Range
 	}

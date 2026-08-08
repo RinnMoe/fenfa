@@ -43,7 +43,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	g.GET("/ios/:releaseID/manifest.plist", handlers.IOSManifest(db, cfg))
 	g.GET("/d/:releaseID", handlers.Download(db))
 
-	// Public event ingestion (client-side)
+	// Public visit counting (client-side)
 	g.POST("/events", handlers.PostEvent(db))
 
 	// UDID endpoints
@@ -81,7 +81,6 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin := g.Group("/" + adminPath)
 	admin.Use(middleware.RequireToken(cfg, "admin"))
 	// JSON
-	admin.GET("/api/events", handlers.AdminListEvents(db))
 	admin.GET("/api/ios_devices", handlers.AdminListIOSDevices(db))
 	admin.GET("/api/ios_variants", handlers.AdminListIOSVariants(db))
 	// Exports
@@ -126,7 +125,6 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin.POST("/api/devices/register-apple", handlers.BatchRegisterDevicesToApple(db))
 
 	admin.GET("/exports/releases.csv", handlers.ExportReleases(db))
-	admin.GET("/exports/events.csv", handlers.ExportEvents(db))
 	admin.GET("/exports/ios_devices.csv", handlers.ExportIOSDevices(db))
 
 	// Root landing: project intro page (front SPA intro view)

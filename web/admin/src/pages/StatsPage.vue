@@ -36,28 +36,15 @@
           <span>{{ statsData.product?.name }}</span>
         </div>
 
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>{{ t.stats.version }}</th>
-                <th>{{ t.stats.build }}</th>
-                <th>{{ t.stats.downloadCount }}</th>
-                <th>{{ t.stats.createdAt }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in statsData.releases" :key="r.id">
-                <td class="version">{{ r.version }}</td>
-                <td>{{ r.build }}</td>
-                <td class="text-success">{{ r.download_count }}</td>
-                <td class="date">{{ new Date(r.created_at).toLocaleString() }}</td>
-              </tr>
-              <tr v-if="!statsData.releases?.length">
-                <td colspan="4" class="empty-state">{{ t.stats.noReleases }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="stats-grid">
+          <div class="stat-block">
+            <span class="stat-label">{{ t.stats.visitCount }}</span>
+            <strong class="stat-value">{{ statsData.stats?.visit_count ?? 0 }}</strong>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">{{ t.stats.downloadCount }}</span>
+            <strong class="stat-value">{{ statsData.stats?.download_count ?? 0 }}</strong>
+          </div>
         </div>
       </div>
 
@@ -153,6 +140,37 @@ if (initVariantId) {
 
 .stats-meta .mono {
   font-size: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 96px;
+  justify-content: center;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .empty-state p {

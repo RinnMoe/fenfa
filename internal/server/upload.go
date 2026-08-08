@@ -121,15 +121,6 @@ func handleUpload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Log upload event
-		db.Create(&store.Event{
-			Type:      "upload",
-			VariantID: variantID,
-			ReleaseID: releaseID,
-			IP:        c.ClientIP(),
-			UA:        c.GetHeader("User-Agent"),
-		})
-
 		// Build response URLs
 		domain := cfg.GetPrimaryDomain()
 		var product store.Product

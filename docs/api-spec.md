@@ -129,7 +129,7 @@ DELETE /admin/api/products/:productID                   # Delete product (cascad
 POST   /admin/api/products/:productID/variants          # Create variant
 PUT    /admin/api/variants/:variantID                    # Update variant
 DELETE /admin/api/variants/:variantID                    # Delete variant (cascades)
-GET    /admin/api/variants/:variantID/stats              # Variant download stats
+GET    /admin/api/variants/:variantID/stats              # Variant visit/download totals
 ```
 
 ### Releases
@@ -185,11 +185,11 @@ PUT /admin/api/apps/:appID/publish                      # Publish app
 PUT /admin/api/apps/:appID/unpublish                    # Unpublish app
 ```
 
-### Events & Devices
+### Devices & Stats
 
 ```
-GET  /admin/api/events                                  # Query events (visit/click/download)
 GET  /admin/api/ios_devices                             # List iOS devices
+GET  /admin/api/variants/:variantID/stats               # Visit and download totals
 POST /admin/api/devices/:id/register-apple              # Register device with Apple
 POST /admin/api/devices/register-apple                  # Batch register devices
 ```
@@ -208,7 +208,6 @@ GET /admin/api/apple/devices                            # List Apple-registered 
 
 ```
 GET /admin/exports/releases.csv                         # Export releases
-GET /admin/exports/events.csv                           # Export events
 GET /admin/exports/ios_devices.csv                      # Export iOS devices
 ```
 

@@ -18,7 +18,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&Release{},
 		&Announcement{},
 		&AuthToken{},
-		&Event{},
 		&IOSDevice{},
 		&DeviceAppBinding{},
 		&SystemSettings{},
@@ -30,6 +29,10 @@ func AutoMigrate(db *gorm.DB) error {
 	}
 
 	if err := migrateLegacyApps(db); err != nil {
+		return err
+	}
+
+	if err := migrateLegacyEvents(db); err != nil {
 		return err
 	}
 
@@ -54,6 +57,35 @@ func AutoMigrate(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+func migrateLegacyEvents(db *gorm.DB) error {
+	if !db.Migrator().HasTable("events") {
+		return nil
+	}
+
+	type visitCountRow struct {
+		VariantID  string
+		VisitTotal int64
+	}
+
+	var rows []visitCountRow
+	if err := db.Table("events").
+		Select("variant_id, COUNT(*) AS visit_total").
+		Where("type = ? AND variant_id <> ''", "visit").
+		Group("variant_id").
+		Scan(&rows).Error; err != nil {
+		return err
+	}
+
+	for _, row := range rows {
+		if err := db.Model(&Variant{}).Where("id = ?", row.VariantID).
+			UpdateColumn("visit_count", gorm.Expr("visit_count + ?", row.VisitTotal)).Error; err != nil {
+			return err
+		}
+	}
+
+	return db.Migrator().DropTable("events")
 }
 
 func migrateLegacyApps(db *gorm.DB) error {

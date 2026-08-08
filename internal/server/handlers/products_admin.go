@@ -174,24 +174,13 @@ func AdminGetVariantStats(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		var releases []store.Release
-		db.Where("variant_id = ?", variant.ID).Order("created_at desc").Find(&releases)
-
-		items := make([]gin.H, 0, len(releases))
-		for _, release := range releases {
-			items = append(items, gin.H{
-				"id":             release.ID,
-				"version":        release.Version,
-				"build":          release.Build,
-				"download_count": release.DownloadCount,
-				"created_at":     release.CreatedAt,
-				"channel":        release.Channel,
-				"force_update":   release.ForceUpdate,
-				"min_os":         release.MinOS,
-				"changelog":      release.Changelog,
-				"file_ext":       release.FileExt,
-				"file_name":      release.FileName,
-			})
+		var downloadCount int64
+		if err := db.Model(&store.Release{}).
+			Where("variant_id = ?", variant.ID).
+			Select("COALESCE(SUM(download_count), 0)").
+			Scan(&downloadCount).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{
@@ -210,8 +199,12 @@ func AdminGetVariantStats(db *gorm.DB) gin.HandlerFunc {
 				"installer_type": variant.InstallerType,
 				"min_os":         variant.MinOS,
 				"published":      variant.Published,
+				"visit_count":    variant.VisitCount,
 			},
-			"releases": items,
+			"stats": gin.H{
+				"visit_count":    variant.VisitCount,
+				"download_count": downloadCount,
+			},
 		}})
 	}
 }

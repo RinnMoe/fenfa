@@ -273,7 +273,6 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 	if s3Uploaded {
 		removeLocalReleaseStaging(destPath, appDir)
 	}
-	_ = db.Create(&store.Event{Type: "upload", AppID: p.LegacyAppID, VariantID: p.VariantID, ReleaseID: release.ID, IP: c.ClientIP(), UA: c.Request.UserAgent()}).Error
 
 	// meta.json snapshot (local storage only)
 	if storageType == "local" {

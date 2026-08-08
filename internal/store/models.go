@@ -27,6 +27,7 @@ type Variant struct {
 	MinOS         string    `gorm:"size:64" json:"min_os"`
 	Published     bool      `gorm:"default:true;index" json:"published"`
 	SortOrder     int       `gorm:"default:0" json:"sort_order"`
+	VisitCount    int64     `gorm:"default:0" json:"visit_count"`
 	LegacyAppID   *string   `gorm:"uniqueIndex;size:64" json:"legacy_app_id,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -86,19 +87,6 @@ type AuthToken struct {
 	RateLimit int        `gorm:"default:0"`
 	CreatedAt time.Time  `json:"created_at"`
 	RevokedAt *time.Time `json:"revoked_at"`
-}
-
-// Event logs uploads/downloads
-type Event struct {
-	ID        uint      `gorm:"primaryKey"`
-	Ts        time.Time `gorm:"autoCreateTime"`
-	Type      string    `gorm:"size:32"`
-	AppID     string    `gorm:"size:64"`
-	VariantID string    `gorm:"size:64;index"`
-	ReleaseID string    `gorm:"size:64"`
-	IP        string    `gorm:"size:64"`
-	UA        string    `gorm:"size:255"`
-	Extra     string    `gorm:"type:text"`
 }
 
 // IOSDevice stores device UDID bindings

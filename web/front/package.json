@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "qrcode": "^1.5.4",
-    "ua-parser-js": "^1.0.38",
     "vue": "^3.5.10"
   },
   "devDependencies": {

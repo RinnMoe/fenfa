@@ -89,7 +89,7 @@ ID 格式为 `{前缀}_{随机字符串}`，如 `app_7f3xn`、`rel_b1cqa`、`prd
 
 ## 数据模型
 
-核心表：`Product`、`Variant`、`Release`、`App`（legacy）、`Event`、`IOSDevice`、`SystemSettings`。Schema 见 `internal/store/models.go`。
+核心表：`Product`、`Variant`、`Release`、`App`（legacy）、`IOSDevice`、`SystemSettings`。Schema 见 `internal/store/models.go`。
 
 ## API 端点
 

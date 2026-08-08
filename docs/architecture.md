@@ -61,7 +61,6 @@ Product (e.g. "MyApp")
 | `variants` | Platform-specific build targets |
 | `releases` | Uploaded builds with metadata |
 | `apps` | Legacy single-platform apps (backward compatible) |
-| `events` | Visit, click, and download tracking |
 | `ios_devices` | UDID bindings for iOS devices |
 | `provisioning_profiles` | Extracted iOS signing profiles |
 | `system_settings` | Global configuration (domains, S3, Apple API) |

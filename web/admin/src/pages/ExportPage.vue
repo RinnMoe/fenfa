@@ -49,17 +49,6 @@
 
         <div class="export-row">
           <div>
-            <div class="export-title">{{ t.exportPage.events }}</div>
-            <div class="export-desc">{{ t.exportPage.eventsDesc }}</div>
-          </div>
-          <button class="btn-secondary" @click="handleExport('events')">
-            <Icon name="download" :size="14" />
-            {{ t.common.export }}
-          </button>
-        </div>
-
-        <div class="export-row">
-          <div>
             <div class="export-title">{{ t.exportPage.iosDevices }}</div>
             <div class="export-desc">{{ t.exportPage.iosDevicesDesc }}</div>
           </div>

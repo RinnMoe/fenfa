@@ -79,18 +79,15 @@ export function useUDID() {
   function handlePrimaryAction(
     variant: VariantItem,
     release: ReleaseItem | null,
-    action: VariantAction,
-    track: (href: string) => void
+    action: VariantAction
   ) {
     if (!release || !action.href) return
     if (action.type === 'install') {
       installing.value = true
-      track(action.href)
       location.href = action.href
       setTimeout(() => { installing.value = false }, 10000)
       return
     }
-    track(action.href)
     location.href = action.href
   }
 

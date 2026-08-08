@@ -100,26 +100,18 @@
   font-weight: 600;
 }
 
-.date,
-.event-time {
+.date {
   color: var(--text-muted);
   font-size: 12px;
   white-space: nowrap;
 }
 
-.event-id,
-.event-ip,
 .mono,
 .code-text {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   word-break: break-all;
-}
-
-.event-ua {
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 .udid-code {

@@ -210,13 +210,6 @@ func TestUploadAcceptsDesktopVariantFileAndPersistsRelease(t *testing.T) {
 	if !strings.Contains(release.StoragePath, variant.ID) {
 		t.Fatalf("expected storage path to contain variant id, got %q", release.StoragePath)
 	}
-	var uploadEvent store.Event
-	if err := db.Where("type = ? AND release_id = ?", "upload", release.ID).Take(&uploadEvent).Error; err != nil {
-		t.Fatalf("load upload event: %v", err)
-	}
-	if uploadEvent.VariantID != variant.ID {
-		t.Fatalf("expected upload event variant_id %q, got %q", variant.ID, uploadEvent.VariantID)
-	}
 }
 
 func TestSmartUploadAcceptsDesktopVariantWithoutParsing(t *testing.T) {

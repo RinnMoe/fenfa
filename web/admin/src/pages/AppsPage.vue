@@ -446,7 +446,6 @@ function productMenuOptions(product: ProductSummary) {
 function variantMenuOptions(variant: any) {
   return [
     { label: t.value.apps.viewStats, key: 'stats' },
-    { label: t.value.apps.viewEvents, key: 'events' },
     { type: 'divider', key: 'divider1' },
     {
       label: variant.published ? t.value.apps.unpublish : t.value.apps.publish,
@@ -473,8 +472,6 @@ function handleProductMenuSelect(key: string, product: ProductSummary) {
 function handleVariantMenuSelect(key: string, variant: any) {
   if (key === 'stats') {
     router.push('/stats/' + variant.id)
-  } else if (key === 'events') {
-    router.push('/events/' + variant.id)
   } else if (key === 'publish') {
     updateVariantPublished(variant, !variant.published)
   } else if (key === 'delete') {
