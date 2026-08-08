@@ -28,7 +28,6 @@ import (
 	"howett.net/plist"
 
 	"github.com/openprx/fenfa/internal/config"
-	s3client "github.com/openprx/fenfa/internal/s3"
 	"github.com/openprx/fenfa/internal/store"
 )
 
@@ -187,9 +186,15 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "IO", "message": err.Error()}})
 			return
 		}
-		defer dest.Close()
 		h := sha256.New()
 		if _, err := io.Copy(dest, io.TeeReader(reader, h)); err != nil {
+			dest.Close()
+			removeLocalReleaseStaging(destPath, appDir)
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "IO", "message": err.Error()}})
+			return
+		}
+		if err := dest.Close(); err != nil {
+			removeLocalReleaseStaging(destPath, appDir)
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "IO", "message": err.Error()}})
 			return
 		}
@@ -210,11 +215,9 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 		storageType = "local"
 	}
 
-	// For iOS: extract and save provisioning profile (before S3 upload, needs local file)
+	// For iOS: extract and save provisioning profile before S3 cleanup removes the staged file.
 	if platform == "ios" {
-		go func(releaseID, storagePath string) {
-			saveProvisioningProfile(db, releaseID, storagePath)
-		}(release.ID, destPath)
+		saveProvisioningProfile(db, release.ID, destPath)
 	}
 
 	// Optional: save app icon if provided
@@ -236,28 +239,39 @@ func doUpload(c *gin.Context, db *gorm.DB, cfg *config.Config, file *multipart.F
 		}
 	}
 
+	s3Uploaded := false
 	// If S3 mode, upload file to S3/R2
 	if storageType == "s3" && settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != "" {
-		s3c := s3client.NewClient(settings.S3Endpoint, settings.S3Bucket, settings.S3AccessKey, settings.S3SecretKey)
+		s3c := newS3StorageClient(settings)
 		s3Key := fmt.Sprintf("uploads/%s/%s/%s/%s", p.ProductID, p.VariantID, release.ID, filename)
 
 		f, err := os.Open(destPath)
 		if err != nil {
+			removeLocalReleaseStaging(destPath, appDir)
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "IO", "message": "failed to read file for S3 upload"}})
 			return
 		}
 		if err := s3c.Upload(c.Request.Context(), s3Key, f, release.MimeType); err != nil {
 			f.Close()
+			removeLocalReleaseStaging(destPath, appDir)
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "S3", "message": err.Error()}})
 			return
 		}
 		f.Close()
 		release.StoragePath = "s3://" + s3Key
+		s3Uploaded = true
 	}
 
 	if err := db.Create(&release).Error; err != nil {
+		if s3Uploaded {
+			_ = deleteS3Object(c.Request.Context(), db, release.StoragePath)
+		}
+		removeLocalReleaseStaging(destPath, appDir)
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": err.Error()}})
 		return
+	}
+	if s3Uploaded {
+		removeLocalReleaseStaging(destPath, appDir)
 	}
 	_ = db.Create(&store.Event{Type: "upload", AppID: p.LegacyAppID, VariantID: p.VariantID, ReleaseID: release.ID, IP: c.ClientIP(), UA: c.Request.UserAgent()}).Error
 

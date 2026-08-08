@@ -512,18 +512,6 @@ func nextAdminProductSlug(db *gorm.DB, base string) string {
 	}
 }
 
-// deleteReleaseFiles removes the file from disk for a release; errors are logged but not fatal.
-func deleteReleaseFiles(releases []store.Release) {
-	for _, r := range releases {
-		if r.StoragePath == "" {
-			continue
-		}
-		if err := os.Remove(r.StoragePath); err != nil && !os.IsNotExist(err) {
-			log.Printf("WARN: failed to delete file %s: %v", r.StoragePath, err)
-		}
-	}
-}
-
 func AdminDeleteProduct(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		productID := c.Param("productID")
@@ -579,7 +567,7 @@ func AdminDeleteProduct(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Delete files from disk after successful transaction
-		deleteReleaseFiles(releases)
+		deleteReleaseFiles(db, releases)
 		if product.IconPath != "" {
 			if err := os.Remove(product.IconPath); err != nil && !os.IsNotExist(err) {
 				log.Printf("WARN: failed to delete product icon %s: %v", product.IconPath, err)
@@ -627,7 +615,7 @@ func AdminDeleteVariant(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Delete files from disk after successful transaction
-		deleteReleaseFiles(releases)
+		deleteReleaseFiles(db, releases)
 
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	}
@@ -690,7 +678,7 @@ func AdminDeleteRelease(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Delete file from disk after successful transaction
-		deleteReleaseFiles([]store.Release{release})
+		deleteReleaseFiles(db, []store.Release{release})
 
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	}
