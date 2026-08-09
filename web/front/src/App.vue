@@ -84,8 +84,20 @@
           <span>Fenfa</span>
         </a>
         <span v-if="t.footer.brandService" class="footer-text">{{ t.footer.brandService }}</span>
+        <span class="footer-divider" aria-hidden="true">·</span>
+        <button type="button" class="feedback-link" @click="showFeedback = true">
+          {{ t.feedback.button }}
+        </button>
       </footer>
     </div>
+
+    <FeedbackModal
+      v-if="showFeedback && productData"
+      :product="productData.product"
+      :variant="activeVariant"
+      :release="activeRelease"
+      @close="showFeedback = false"
+    />
   </div>
 </template>
 
@@ -101,6 +113,7 @@ import ReleaseDetails from './components/ReleaseDetails.vue'
 import ReleaseActions from './components/ReleaseActions.vue'
 import ReleaseHistory from './components/ReleaseHistory.vue'
 import QRCodePanel from './components/QRCodePanel.vue'
+import FeedbackModal from './components/FeedbackModal.vue'
 
 const { t } = useI18n()
 const {
@@ -122,6 +135,7 @@ const resourceID = pathParts[1] || ''
 const pageURL = location.href
 const activeVariantId = ref('')
 const intro = ref(false)
+const showFeedback = ref(false)
 
 const activeVariant = computed(() => {
   return sortedVariants.value.find((variant) => variant.id === activeVariantId.value) || null

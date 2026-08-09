@@ -64,6 +64,7 @@ Product (e.g. "MyApp")
 | `ios_devices` | UDID bindings for iOS devices |
 | `provisioning_profiles` | Extracted iOS signing profiles |
 | `system_settings` | Global configuration (domains, S3, Apple API) |
+| `feedbacks` | Anonymous feedback and product context snapshots |
 
 See `internal/store/models.go` for full schema.
 
@@ -78,10 +79,12 @@ Request → Gin Router → Auth Middleware → Handler → GORM → SQLite
 - `GET /d/:releaseID` — file download
 - `GET /ios/:releaseID/manifest.plist` — iOS manifest
 - `GET/POST /udid/*` — device binding
+- `POST /api/v1/feedback` — anonymous product feedback submission
 
 ### Protected routes (token auth)
 - `POST /upload` — upload builds (upload token)
 - `* /admin/api/*` — admin API (admin token)
+- `* /<adminPath>/api/feedback` — feedback inbox and processing (admin token)
 
 ## iOS Distribution Flow
 

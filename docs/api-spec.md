@@ -61,6 +61,42 @@ GET /healthz
 
 Returns `{"ok": true}` if the server is running.
 
+### User Feedback
+
+```http
+POST /api/v1/feedback
+Content-Type: application/json
+```
+
+The endpoint is public and accepts anonymous feedback submitted from a published product page. It does not require `X-Auth-Token`.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `product_id` | yes | Published product ID |
+| `variant_id` | no | Published variant belonging to the product |
+| `release_id` | no | Release belonging to the selected variant |
+| `category` | yes | `bug`, `suggestion`, or `other` |
+| `content` | yes | Feedback text, up to 4000 characters |
+| `contact` | no | Free-form contact text, up to 255 characters |
+| `website` | no | Honeypot field; should be empty |
+
+**Response** (201):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "feedback": {
+      "id": "fb_xxx",
+      "status": "pending",
+      "created_at": "2026-08-09T00:00:00Z"
+    }
+  }
+}
+```
+
+Requests are limited to five submissions per client IP per ten minutes. Oversized or invalid requests return `400`; rate-limited requests return `429` with `Retry-After`.
+
 ## Upload
 
 ### Standard Upload
@@ -154,6 +190,20 @@ GET    /admin/api/releases/:releaseID/file               # Download installer (a
 ```
 
 `GET /admin/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so the admin token stays out of the browser URL.
+
+### Feedback
+
+All feedback endpoints below require the admin token. Replace `<admin_path>` with the configured admin path (default `admin`).
+
+```
+GET    /<admin_path>/api/feedback
+PATCH  /<admin_path>/api/feedback/:feedbackID
+DELETE /<admin_path>/api/feedback/:feedbackID
+```
+
+`GET` supports `page`, `page_size` (1–100, default 20), `status`, `category`, and `product_id`. Results are ordered by `created_at DESC` and return `items`, `total`, `page`, `page_size`, and `total_pages`.
+
+`PATCH` accepts `{"status":"pending"}` or `{"status":"processed"}`. `DELETE` permanently removes the feedback item and should only be called after an administrative confirmation.
 
 ### Replace Installer
 

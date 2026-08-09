@@ -60,6 +60,7 @@ const menuItems = computed(() => [
   { id: 'apps', icon: 'smartphone', label: t.value.sidebar.apps },
   { id: 'upload', icon: 'upload', label: t.value.sidebar.upload },
   { id: 'stats', icon: 'bar-chart', label: t.value.sidebar.stats },
+  { id: 'feedback', icon: 'clipboard', label: t.value.sidebar.feedback },
   { id: 'udid', icon: 'lock', label: t.value.sidebar.udid },
   { id: 'export', icon: 'save', label: t.value.sidebar.export },
   { id: 'settings', icon: 'settings', label: t.value.sidebar.settings }

@@ -355,6 +355,23 @@
   color: var(--text-primary);
 }
 
+.footer-divider {
+  color: var(--text-faint);
+}
+
+.feedback-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.feedback-link:hover {
+  color: var(--text-primary);
+}
+
 .github-icon {
   display: block;
   flex-shrink: 0;

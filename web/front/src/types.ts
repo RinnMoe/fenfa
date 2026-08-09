@@ -1,5 +1,7 @@
 export type Platform = 'ios' | 'android' | 'macos' | 'windows' | 'linux'
 
+export type FeedbackCategory = 'bug' | 'suggestion' | 'other'
+
 export interface ReleaseActions {
   download?: string
   release_page?: string

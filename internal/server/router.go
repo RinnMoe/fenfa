@@ -37,6 +37,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	g.GET("/api/products/slug/:slug", handlers.ProductDetailJSON(db, cfg))
 	g.GET("/api/v1/products/:slug/latest", handlers.PublicLatestRelease(db, cfg))
 	g.GET("/api/v1/products/:slug/announcements", handlers.PublicAnnouncements(db))
+	g.POST("/api/v1/feedback", handlers.PublicCreateFeedback(db))
 	g.GET("/icon/:appID", handlers.AppIcon(db))
 	g.GET("/icon/products/:productID", handlers.ProductIcon(db))
 
@@ -94,6 +95,9 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin.GET("/api/products/:productID", handlers.AdminGetProduct(db))
 	admin.GET("/api/products/:productID/announcements", handlers.AdminListAnnouncements(db))
 	admin.POST("/api/products/:productID/announcements", handlers.AdminCreateAnnouncement(db))
+	admin.GET("/api/feedback", handlers.AdminListFeedback(db))
+	admin.PATCH("/api/feedback/:feedbackID", handlers.AdminUpdateFeedback(db))
+	admin.DELETE("/api/feedback/:feedbackID", handlers.AdminDeleteFeedback(db))
 	admin.GET("/api/announcements/:announcementID", handlers.AdminGetAnnouncement(db))
 	admin.PUT("/api/announcements/:announcementID", handlers.AdminUpdateAnnouncement(db))
 	admin.DELETE("/api/announcements/:announcementID", handlers.AdminDeleteAnnouncement(db))

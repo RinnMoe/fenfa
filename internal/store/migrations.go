@@ -17,6 +17,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&App{},
 		&Release{},
 		&Announcement{},
+		&Feedback{},
 		&AuthToken{},
 		&IOSDevice{},
 		&DeviceAppBinding{},

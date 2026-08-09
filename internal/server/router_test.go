@@ -69,6 +69,41 @@ func TestPublicV1RoutesDoNotRequireToken(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected latest 200 without token, got %d body=%s", rr.Code, rr.Body.String())
 	}
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(`{"product_id":"prd_router","variant_id":"var_router","release_id":"rel_router","category":"bug","content":"Cannot install"}`))
+	req.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected feedback 201 without token, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestFeedbackAdminRoutesRequireAdminToken(t *testing.T) {
+	engine, _, _ := newTestRouter(t)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin/api/feedback", nil)
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected feedback 401 without token, got %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/admin/api/feedback", nil)
+	req.Header.Set("X-Auth-Token", "upload-token")
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected feedback 403 for upload token, got %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/admin/api/feedback", nil)
+	req.Header.Set("X-Auth-Token", "admin-token")
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected feedback 200 for admin token, got %d body=%s", rr.Code, rr.Body.String())
+	}
 }
 
 func TestAnnouncementAdminRoutesRequireAdminToken(t *testing.T) {

@@ -79,6 +79,23 @@ type Announcement struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
+// Feedback represents anonymous user feedback submitted from a product page.
+type Feedback struct {
+	ID              string    `gorm:"primaryKey;size:64" json:"id"`
+	ProductID       string    `gorm:"index;size:64" json:"product_id"`
+	VariantID       string    `gorm:"index;size:64" json:"variant_id"`
+	ReleaseID       string    `gorm:"index;size:64" json:"release_id"`
+	ProductName     string    `gorm:"size:255" json:"product_name"`
+	VariantPlatform string    `gorm:"size:16" json:"variant_platform"`
+	ReleaseVersion  string    `gorm:"size:64" json:"release_version"`
+	Category        string    `gorm:"index;size:32" json:"category"`
+	Content         string    `gorm:"type:text" json:"content"`
+	Contact         string    `gorm:"size:255" json:"contact"`
+	Status          string    `gorm:"index;size:16;default:pending" json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
 // AuthToken for upload/admin scopes
 type AuthToken struct {
 	Token     string     `gorm:"primaryKey;size:128"`
