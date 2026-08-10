@@ -16,7 +16,8 @@ type Config struct {
 		BundleIDPrefix   string   `json:"bundle_id_prefix"`  // Bundle ID prefix (e.g., com.yourcompany.fenfa)
 		DataDir          string   `json:"data_dir"`
 		DBPath           string   `json:"db_path"`
-		AdminPath        string   `json:"admin_path"` // Admin panel URL suffix (default "admin")
+		AdminPath        string   `json:"admin_path"`      // Admin panel URL suffix (default "admin")
+		TrustedProxies   []string `json:"trusted_proxies"` // Proxy CIDRs allowed to provide client IP headers
 		DevProxyFront    string   `json:"dev_proxy_front"`
 		DevProxyAdmin    string   `json:"dev_proxy_admin"`
 	} `json:"server"`
@@ -83,6 +84,35 @@ func applyEnv(c *Config) {
 	if v := os.Getenv("FENFA_ADMIN_PATH"); v != "" {
 		c.Server.AdminPath = v
 	}
+	if v := os.Getenv("FENFA_TRUSTED_PROXIES"); v != "" {
+		c.Server.TrustedProxies = splitCSV(v)
+	}
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if value := strings.TrimSpace(part); value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
+}
+
+// GetTrustedProxies returns the configured proxy networks. An empty result
+// intentionally disables Gin's forwarded client IP handling.
+func (c *Config) GetTrustedProxies() []string {
+	values := make([]string, 0, len(c.Server.TrustedProxies))
+	for _, proxy := range c.Server.TrustedProxies {
+		if value := strings.TrimSpace(proxy); value != "" {
+			values = append(values, value)
+		}
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	return values
 }
 
 // GetAdminPath returns the admin panel URL suffix, normalized without

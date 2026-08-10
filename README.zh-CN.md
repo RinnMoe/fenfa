@@ -26,6 +26,7 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 - **产品公告** — 创建、定时、启用和停用产品级公告
 - **公开客户端 API** — 面向软件客户端的 latest release 与 announcements 接口
 - **S3/R2 存储** — Cloudflare R2、AWS S3 及其他 S3 兼容对象存储
+- **反馈邮件提醒** — 可在后台配置 SMTP，在收到用户反馈时发送提醒
 - **单文件部署** — Go 二进制内嵌前端
 - **SQLite** — 零外部依赖，数据存储在单个文件
 - **多语言** — 中英文界面
@@ -77,8 +78,13 @@ go build -o fenfa ./cmd/server
 | `FENFA_DATA_DIR` | 数据库目录 |
 | `FENFA_PRIMARY_DOMAIN` | 主域名 |
 | `FENFA_ADMIN_PATH` | 管理后台路径后缀（默认 `admin`） |
+| `FENFA_TRUSTED_PROXIES` | 允许提供客户端 IP 请求头的代理 IP/CIDR，逗号分隔；留空表示禁用转发 IP 请求头 |
 | `FENFA_ADMIN_TOKEN` | 管理员 Token |
 | `FENFA_UPLOAD_TOKEN` | 上传 Token |
+
+如果部署在 Nginx 或其他反向代理之后，请将 `FENFA_TRUSTED_PROXIES` 设置为代理的实际 IP 或网段，不要使用 `0.0.0.0/0` 或 `::/0`。
+
+邮件提醒配置位于后台「系统设置 > 邮件通知」，支持 STARTTLS、SSL/TLS 和无加密 SMTP。密码不会回显；保存后可使用测试邮件按钮验证配置。
 
 ### 存储
 

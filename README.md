@@ -26,6 +26,7 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 - **Product announcements** — create, schedule, enable, and disable product-scoped notices
 - **Public client APIs** — latest release and announcements endpoints for software clients
 - **S3/R2 storage** — Cloudflare R2, AWS S3, and other S3-compatible object storage
+- **Feedback email reminders** — configure SMTP in the admin panel and receive new feedback alerts
 - **Single binary** — Go binary with embedded frontend
 - **SQLite** — zero external dependencies, data in a single file
 - **i18n** — Chinese and English UI
@@ -77,8 +78,13 @@ See [docs/config.example.json](docs/config.example.json) for all options.
 | `FENFA_DATA_DIR` | Database directory |
 | `FENFA_PRIMARY_DOMAIN` | Public domain URL |
 | `FENFA_ADMIN_PATH` | Admin panel URL suffix (default `admin`) |
+| `FENFA_TRUSTED_PROXIES` | Comma-separated proxy IPs/CIDRs allowed to provide client IP headers; empty disables forwarded IP headers |
 | `FENFA_ADMIN_TOKEN` | Admin token |
 | `FENFA_UPLOAD_TOKEN` | Upload token |
+
+When running behind Nginx or another reverse proxy, set `FENFA_TRUSTED_PROXIES` to that proxy's actual IP or network. Do not use `0.0.0.0/0` or `::/0`.
+
+Configure feedback email reminders in Admin > Settings > Email Notifications. STARTTLS, SSL/TLS, and unencrypted SMTP are supported. Passwords are never shown, and the test email button can validate the current form values before saving.
 
 ### Storage
 

@@ -14,6 +14,14 @@ import (
 	"github.com/openprx/fenfa/internal/store"
 )
 
+type recordingFeedbackNotifier struct {
+	feedback chan store.Feedback
+}
+
+func (notifier *recordingFeedbackNotifier) NotifyFeedback(feedback store.Feedback) {
+	notifier.feedback <- feedback
+}
+
 func performFeedbackRequest(t *testing.T, handler gin.HandlerFunc, body map[string]any, ip string) (*httptest.ResponseRecorder, map[string]any) {
 	t.Helper()
 	raw, err := json.Marshal(body)
@@ -41,7 +49,7 @@ func TestPublicCreateFeedbackPersistsContextSnapshot(t *testing.T) {
 	db := openAdminProductsTestDB(t)
 	product, variant := seedAdminProduct(t, db)
 
-	rr, payload := performFeedbackRequest(t, PublicCreateFeedback(db), map[string]any{
+	rr, payload := performFeedbackRequest(t, PublicCreateFeedback(db, nil), map[string]any{
 		"product_id": product.ID,
 		"variant_id": variant.ID,
 		"release_id": "rel_admin_ios",
@@ -71,10 +79,47 @@ func TestPublicCreateFeedbackPersistsContextSnapshot(t *testing.T) {
 	}
 }
 
+func TestPublicCreateFeedbackNotifiesAfterPersistence(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openAdminProductsTestDB(t)
+	product, variant := seedAdminProduct(t, db)
+	notifier := &recordingFeedbackNotifier{feedback: make(chan store.Feedback, 1)}
+
+	rr, _ := performFeedbackRequest(t, PublicCreateFeedback(db, notifier), map[string]any{
+		"product_id": product.ID,
+		"variant_id": variant.ID,
+		"category":   "suggestion",
+		"content":    "请增加邮件提醒",
+	}, "192.0.2.11")
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	select {
+	case feedback := <-notifier.feedback:
+		var persisted store.Feedback
+		if err := db.Where("id = ?", feedback.ID).First(&persisted).Error; err != nil {
+			t.Fatalf("expected notified feedback to be persisted: %v", err)
+		}
+		if persisted.Content != feedback.Content {
+			t.Fatalf("notified feedback does not match persisted content: %+v", feedback)
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for feedback notification")
+	}
+}
+
 func TestPublicCreateFeedbackValidatesPayloadAndContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openAdminProductsTestDB(t)
 	product, variant := seedAdminProduct(t, db)
+	otherVariant := store.Variant{ID: "var_admin_android", ProductID: product.ID, Platform: "android", Identifier: "com.example.admin", Published: true}
+	if err := db.Create(&otherVariant).Error; err != nil {
+		t.Fatalf("create second variant: %v", err)
+	}
+	if err := db.Create(&store.Release{ID: "rel_admin_android", VariantID: otherVariant.ID, Version: "2.0.0", Build: 2, CreatedAt: time.Now()}).Error; err != nil {
+		t.Fatalf("create second release: %v", err)
+	}
 
 	cases := []struct {
 		name string
@@ -107,15 +152,20 @@ func TestPublicCreateFeedbackValidatesPayloadAndContext(t *testing.T) {
 			code: http.StatusNotFound,
 		},
 		{
-			name: "mismatched release",
+			name: "missing release",
 			body: map[string]any{"product_id": product.ID, "variant_id": variant.ID, "release_id": "rel_missing", "category": "other", "content": "hello"},
 			code: http.StatusNotFound,
+		},
+		{
+			name: "mismatched release",
+			body: map[string]any{"product_id": product.ID, "variant_id": variant.ID, "release_id": "rel_admin_android", "category": "other", "content": "hello"},
+			code: http.StatusBadRequest,
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			rr, _ := performFeedbackRequest(t, PublicCreateFeedback(db), testCase.body, "192.0.2.20")
+			rr, _ := performFeedbackRequest(t, PublicCreateFeedback(db, nil), testCase.body, "192.0.2.20")
 			if rr.Code != testCase.code {
 				t.Fatalf("expected status %d, got %d body=%s", testCase.code, rr.Code, rr.Body.String())
 			}
@@ -129,11 +179,59 @@ func TestPublicCreateFeedbackValidatesPayloadAndContext(t *testing.T) {
 	}
 }
 
+func TestPublicCreateFeedbackInvalidRequestsDoNotConsumeSubmissionLimit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openAdminProductsTestDB(t)
+	product, variant := seedAdminProduct(t, db)
+	handler := PublicCreateFeedback(db, nil)
+
+	for index := 0; index < feedbackRateLimit; index++ {
+		rr, _ := performFeedbackRequest(t, handler, map[string]any{
+			"product_id": product.ID,
+			"variant_id": variant.ID,
+			"category":   "bug",
+		}, "192.0.2.40")
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("expected invalid request %d to return 400, got %d", index+1, rr.Code)
+		}
+	}
+
+	for index := 0; index < feedbackRateLimit; index++ {
+		rr, _ := performFeedbackRequest(t, handler, map[string]any{
+			"product_id": product.ID,
+			"variant_id": variant.ID,
+			"category":   "bug",
+			"content":    "有效反馈",
+		}, "192.0.2.40")
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("expected valid request %d to succeed after invalid requests, got %d", index+1, rr.Code)
+		}
+	}
+
+	limited, _ := performFeedbackRequest(t, handler, map[string]any{
+		"product_id": product.ID,
+		"variant_id": variant.ID,
+		"category":   "bug",
+		"content":    "第六次有效反馈",
+	}, "192.0.2.40")
+	if limited.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected sixth valid request to be rate limited, got %d", limited.Code)
+	}
+
+	var count int64
+	if err := db.Model(&store.Feedback{}).Count(&count).Error; err != nil {
+		t.Fatalf("count feedback: %v", err)
+	}
+	if count != feedbackRateLimit {
+		t.Fatalf("expected only valid feedback to be persisted, got %d", count)
+	}
+}
+
 func TestPublicCreateFeedbackHoneypotAndRateLimit(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openAdminProductsTestDB(t)
 	product, variant := seedAdminProduct(t, db)
-	handler := PublicCreateFeedback(db)
+	handler := PublicCreateFeedback(db, nil)
 
 	honeypot, _ := performFeedbackRequest(t, handler, map[string]any{
 		"product_id": product.ID,

@@ -15,16 +15,18 @@ import (
 )
 
 const (
-	feedbackStatusPending   = "pending"
-	feedbackStatusProcessed = "processed"
-	feedbackCategoryBug     = "bug"
-	feedbackCategorySuggest = "suggestion"
-	feedbackCategoryOther   = "other"
-	feedbackRateWindow      = 10 * time.Minute
-	feedbackRateLimit       = 5
-	feedbackMaxBodyBytes    = 16 * 1024
-	feedbackMaxContentRunes = 4000
-	feedbackMaxContactRunes = 255
+	feedbackStatusPending      = "pending"
+	feedbackStatusProcessed    = "processed"
+	feedbackCategoryBug        = "bug"
+	feedbackCategorySuggest    = "suggestion"
+	feedbackCategoryOther      = "other"
+	feedbackRateWindow         = 10 * time.Minute
+	feedbackRateLimit          = 5
+	feedbackRequestRateLimit   = 30
+	feedbackRateLimiterMaxKeys = 10000
+	feedbackMaxBodyBytes       = 16 * 1024
+	feedbackMaxContentRunes    = 4000
+	feedbackMaxContactRunes    = 255
 )
 
 type publicFeedbackInput struct {
@@ -41,14 +43,25 @@ type adminFeedbackUpdateInput struct {
 	Status string `json:"status"`
 }
 
+type FeedbackNotifier interface {
+	NotifyFeedback(store.Feedback)
+}
+
 type feedbackRateLimiter struct {
 	mu          sync.Mutex
 	entries     map[string][]time.Time
 	lastCleanup time.Time
+	limit       int
+	maxKeys     int
 }
 
-func newFeedbackRateLimiter() *feedbackRateLimiter {
-	return &feedbackRateLimiter{entries: make(map[string][]time.Time), lastCleanup: time.Now()}
+func newFeedbackRateLimiter(limit int) *feedbackRateLimiter {
+	return &feedbackRateLimiter{
+		entries:     make(map[string][]time.Time),
+		lastCleanup: time.Now(),
+		limit:       limit,
+		maxKeys:     feedbackRateLimiterMaxKeys,
+	}
 }
 
 func (limiter *feedbackRateLimiter) allow(ip string, now time.Time) (bool, time.Duration) {
@@ -56,15 +69,23 @@ func (limiter *feedbackRateLimiter) allow(ip string, now time.Time) (bool, time.
 	defer limiter.mu.Unlock()
 
 	cutoff := now.Add(-feedbackRateWindow)
-	if now.Sub(limiter.lastCleanup) >= time.Minute {
+	if now.Sub(limiter.lastCleanup) >= time.Minute || len(limiter.entries) >= limiter.maxKeys {
 		for key, timestamps := range limiter.entries {
-			if len(timestamps) == 0 || !timestamps[len(timestamps)-1].After(cutoff) {
+			hasRecent := false
+			for _, timestamp := range timestamps {
+				if timestamp.After(cutoff) {
+					hasRecent = true
+					break
+				}
+			}
+			if !hasRecent {
 				delete(limiter.entries, key)
 			}
 		}
 		limiter.lastCleanup = now
 	}
 	previous := limiter.entries[ip]
+	wasTracked := len(previous) > 0
 	kept := previous[:0]
 	for _, timestamp := range previous {
 		if timestamp.After(cutoff) {
@@ -73,16 +94,26 @@ func (limiter *feedbackRateLimiter) allow(ip string, now time.Time) (bool, time.
 	}
 	if len(kept) == 0 {
 		delete(limiter.entries, ip)
+		wasTracked = false
 	} else {
 		limiter.entries[ip] = kept
 	}
 
-	if len(kept) >= feedbackRateLimit {
-		retryAfter := kept[0].Add(feedbackRateWindow).Sub(now)
+	if len(kept) >= limiter.limit {
+		oldest := kept[0]
+		for _, timestamp := range kept[1:] {
+			if timestamp.Before(oldest) {
+				oldest = timestamp
+			}
+		}
+		retryAfter := oldest.Add(feedbackRateWindow).Sub(now)
 		if retryAfter < time.Second {
 			retryAfter = time.Second
 		}
 		return false, retryAfter
+	}
+	if !wasTracked && len(limiter.entries) >= limiter.maxKeys {
+		return false, feedbackRateWindow
 	}
 
 	limiter.entries[ip] = append(kept, now)
@@ -90,11 +121,20 @@ func (limiter *feedbackRateLimiter) allow(ip string, now time.Time) (bool, time.
 }
 
 // PublicCreateFeedback accepts anonymous feedback from a published product page.
-func PublicCreateFeedback(db *gorm.DB) gin.HandlerFunc {
-	limiter := newFeedbackRateLimiter()
+func PublicCreateFeedback(db *gorm.DB, notifiers ...FeedbackNotifier) gin.HandlerFunc {
+	requestLimiter := newFeedbackRateLimiter(feedbackRequestRateLimit)
+	submissionLimiter := newFeedbackRateLimiter(feedbackRateLimit)
+	var notifier FeedbackNotifier
+	if len(notifiers) > 0 {
+		notifier = notifiers[0]
+	}
 
 	return func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, feedbackMaxBodyBytes)
+		if allowed, retryAfter := requestLimiter.allow(c.ClientIP(), time.Now()); !allowed {
+			writeFeedbackRateLimitResponse(c, retryAfter)
+			return
+		}
 
 		var input publicFeedbackInput
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -106,13 +146,6 @@ func PublicCreateFeedback(db *gorm.DB) gin.HandlerFunc {
 		// a useful signal that their request was rejected.
 		if strings.TrimSpace(input.Website) != "" {
 			c.JSON(http.StatusCreated, gin.H{"ok": true, "data": gin.H{"accepted": true}})
-			return
-		}
-
-		if allowed, retryAfter := limiter.allow(c.ClientIP(), time.Now()); !allowed {
-			seconds := int((retryAfter + time.Second - 1) / time.Second)
-			c.Header("Retry-After", strconv.Itoa(seconds))
-			c.JSON(http.StatusTooManyRequests, gin.H{"ok": false, "error": gin.H{"code": "RATE_LIMITED", "message": "too many feedback submissions"}})
 			return
 		}
 
@@ -168,6 +201,10 @@ func PublicCreateFeedback(db *gorm.DB) gin.HandlerFunc {
 				variantID = variant.ID
 			}
 		}
+		if allowed, retryAfter := submissionLimiter.allow(c.ClientIP(), time.Now()); !allowed {
+			writeFeedbackRateLimitResponse(c, retryAfter)
+			return
+		}
 
 		now := time.Now().UTC()
 		feedback := store.Feedback{
@@ -189,6 +226,9 @@ func PublicCreateFeedback(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": "failed to save feedback"}})
 			return
 		}
+		if notifier != nil {
+			notifier.NotifyFeedback(feedback)
+		}
 
 		c.JSON(http.StatusCreated, gin.H{"ok": true, "data": gin.H{
 			"feedback": gin.H{
@@ -198,6 +238,12 @@ func PublicCreateFeedback(db *gorm.DB) gin.HandlerFunc {
 			},
 		}})
 	}
+}
+
+func writeFeedbackRateLimitResponse(c *gin.Context, retryAfter time.Duration) {
+	seconds := int((retryAfter + time.Second - 1) / time.Second)
+	c.Header("Retry-After", strconv.Itoa(seconds))
+	c.JSON(http.StatusTooManyRequests, gin.H{"ok": false, "error": gin.H{"code": "RATE_LIMITED", "message": "too many feedback submissions"}})
 }
 
 // AdminListFeedback returns paginated feedback for the authenticated admin.
@@ -238,7 +284,7 @@ func AdminListFeedback(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var feedbacks []store.Feedback
-		if err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&feedbacks).Error; err != nil {
+		if err := query.Order("created_at DESC, id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&feedbacks).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DB", "message": "failed to load feedback"}})
 			return
 		}

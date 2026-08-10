@@ -95,7 +95,7 @@ The endpoint is public and accepts anonymous feedback submitted from a published
 }
 ```
 
-Requests are limited to five submissions per client IP per ten minutes. Oversized or invalid requests return `400`; rate-limited requests return `429` with `Retry-After`.
+Requests are limited to five accepted submissions per client IP per ten minutes. Invalid or oversized requests are separately limited to 30 requests per client IP per ten minutes. Rate-limited requests return `429` with `Retry-After`. The in-process limit is intended for a single Fenfa process; multi-instance deployments should add a shared or edge rate limiter.
 
 ## Upload
 
@@ -201,7 +201,7 @@ PATCH  /<admin_path>/api/feedback/:feedbackID
 DELETE /<admin_path>/api/feedback/:feedbackID
 ```
 
-`GET` supports `page`, `page_size` (1–100, default 20), `status`, `category`, and `product_id`. Results are ordered by `created_at DESC` and return `items`, `total`, `page`, `page_size`, and `total_pages`.
+`GET` supports `page`, `page_size` (1–100, default 20), `status`, `category`, and `product_id`. Results are ordered by `created_at DESC, id DESC` and return `items`, `total`, `page`, `page_size`, and `total_pages`.
 
 `PATCH` accepts `{"status":"pending"}` or `{"status":"processed"}`. `DELETE` permanently removes the feedback item and should only be called after an administrative confirmation.
 
@@ -249,10 +249,25 @@ POST /admin/api/devices/register-apple                  # Batch register devices
 ```
 GET /admin/api/settings                                 # Get system settings
 PUT /admin/api/settings                                 # Update settings
+POST /<admin_path>/api/settings/email/test             # Send a test email without saving
 GET /admin/api/upload-config                            # Get upload configuration
 GET /admin/api/apple/status                             # Check Apple API status
 GET /admin/api/apple/devices                            # List Apple-registered devices
 ```
+
+`GET /<admin_path>/api/settings` returns SMTP settings without the password. The
+response includes `email_enabled`, `email_configured`, `smtp_host`,
+`smtp_port`, `smtp_encryption` (`starttls`, `ssl`, or `none`),
+`smtp_username`, `smtp_from`, `smtp_to`, and `smtp_password_set`.
+
+`PUT /<admin_path>/api/settings` accepts the same SMTP fields plus `smtp_password`.
+An empty password keeps the saved value. When `email_enabled` is true, the
+SMTP host, port, encryption mode, sender, and recipient must be valid.
+
+`POST /<admin_path>/api/settings/email/test` accepts the current SMTP form values and
+sends a plain-text test message without persisting them. An empty password
+reuses the saved SMTP password. SMTP errors return `502` with
+`EMAIL_SEND_FAILED`.
 
 ### Export
 

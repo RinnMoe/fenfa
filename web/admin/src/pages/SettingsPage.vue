@@ -74,6 +74,114 @@
 
       <section class="panel settings-section">
         <div class="settings-head">
+          <h2 class="section-title">{{ t.email.title }}</h2>
+          <p class="settings-desc">{{ t.email.subtitle }}</p>
+        </div>
+
+        <div class="settings-body">
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="email-enabled">{{ t.email.enabled }}</label>
+              <p class="help-text">{{ t.email.enabledHelp }}</p>
+            </div>
+            <div class="settings-field checkbox-group">
+              <label class="checkbox-label">
+                <input id="email-enabled" v-model="emailForm.enabled" type="checkbox">
+                <span>{{ emailForm.enabled ? t.email.enabledOn : t.email.enabledOff }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-host">{{ t.email.smtpHost }}</label>
+              <p class="help-text">{{ t.email.smtpHostHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-host" v-model="emailForm.smtpHost" type="text" class="input" :placeholder="t.email.smtpHostPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-port">{{ t.email.smtpPort }}</label>
+              <p class="help-text">{{ t.email.smtpPortHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-port" v-model.number="emailForm.smtpPort" type="number" min="1" max="65535" class="input" placeholder="587">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-encryption">{{ t.email.encryption }}</label>
+              <p class="help-text">{{ t.email.encryptionHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <select id="smtp-encryption" v-model="emailForm.encryption" class="select">
+                <option value="starttls">{{ t.email.starttls }}</option>
+                <option value="ssl">{{ t.email.ssl }}</option>
+                <option value="none">{{ t.email.none }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-username">{{ t.email.username }}</label>
+              <p class="help-text">{{ t.email.usernameHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-username" v-model="emailForm.username" type="text" class="input" :placeholder="t.email.usernamePlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-password">{{ t.email.password }}</label>
+              <p class="help-text">{{ t.email.passwordHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-password" v-model="emailForm.password" type="password" class="input" :placeholder="emailForm.passwordSet ? t.email.passwordConfigured : t.email.passwordPlaceholder" autocomplete="new-password">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-from">{{ t.email.from }}</label>
+              <p class="help-text">{{ t.email.fromHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-from" v-model="emailForm.from" type="email" class="input" :placeholder="t.email.fromPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="smtp-to">{{ t.email.to }}</label>
+              <p class="help-text">{{ t.email.toHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <input id="smtp-to" v-model="emailForm.to" type="email" class="input" :placeholder="t.email.toPlaceholder">
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <span class="label">{{ t.email.testTitle }}</span>
+              <p class="help-text">{{ t.email.testHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <button type="button" class="btn-test" :disabled="testingEmail" @click="testEmailConnection">
+                {{ testingEmail ? t.email.testing : t.email.testButton }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel settings-section">
+        <div class="settings-head">
           <h2 class="section-title">{{ t.storage.title }}</h2>
           <p class="settings-desc">{{ t.storage.subtitle }}</p>
         </div>
@@ -282,6 +390,18 @@ const storageForm = reactive({
   s3PublicURL: ''
 })
 
+const emailForm = reactive({
+  enabled: false,
+  smtpHost: '',
+  smtpPort: 587,
+  encryption: 'starttls',
+  username: '',
+  password: '',
+  passwordSet: false,
+  from: '',
+  to: ''
+})
+
 const appleForm = reactive({
   keyId: '',
   issuerId: '',
@@ -297,10 +417,23 @@ const appleStatus = reactive({
 })
 
 const testingConnection = ref(false)
+const testingEmail = ref(false)
 
 function isValidDomain(domain: string): boolean {
   if (!domain) return false
   return domain.startsWith('http://') || domain.startsWith('https://')
+}
+
+function applyEmailSettings(data: Record<string, any>) {
+  emailForm.enabled = Boolean(data.email_enabled)
+  emailForm.smtpHost = data.smtp_host || ''
+  emailForm.smtpPort = Number(data.smtp_port) || 587
+  emailForm.encryption = data.smtp_encryption || 'starttls'
+  emailForm.username = data.smtp_username || ''
+  emailForm.password = ''
+  emailForm.passwordSet = Boolean(data.smtp_password_set)
+  emailForm.from = data.smtp_from || ''
+  emailForm.to = data.smtp_to || ''
 }
 
 async function loadSettings() {
@@ -334,6 +467,8 @@ async function loadSettings() {
       storageForm.s3Bucket = data.data.s3_bucket || ''
       storageForm.s3PublicURL = data.data.s3_public_url || ''
       storageForm.s3SecretKeySet = data.data.s3_configured || false
+
+      applyEmailSettings(data.data)
 
       if (data.data.apple_configured !== undefined) {
         appleStatus.configured = data.data.apple_configured
@@ -388,7 +523,16 @@ async function handleSave() {
       organization: form.organization,
       storage_type: storageForm.storageType,
       upload_domain: storageForm.uploadDomain,
+      email_enabled: emailForm.enabled,
+      smtp_host: emailForm.smtpHost,
+      smtp_port: emailForm.smtpPort,
+      smtp_encryption: emailForm.encryption,
+      smtp_username: emailForm.username,
+      smtp_from: emailForm.from,
+      smtp_to: emailForm.to,
     }
+
+    if (emailForm.password) payload.smtp_password = emailForm.password
 
     if (storageForm.storageType === 's3') {
       payload.s3_endpoint = storageForm.s3Endpoint
@@ -435,6 +579,8 @@ async function handleSave() {
       storageForm.s3SecretKey = ''
       storageForm.s3AccessKey = ''
 
+      applyEmailSettings(data.data)
+
       if (data.data.apple_configured !== undefined) {
         appleStatus.configured = data.data.apple_configured
         appleForm.keyId = data.data.apple_key_id || ''
@@ -449,6 +595,39 @@ async function handleSave() {
     toast.error(t.value.settings.saveFailed + ': ' + e)
   } finally {
     saving.value = false
+  }
+}
+
+async function testEmailConnection() {
+  testingEmail.value = true
+  try {
+    const res = await adminFetch('api/settings/email/test', {
+      method: 'POST',
+      token: token.value,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        smtp_host: emailForm.smtpHost,
+        smtp_port: emailForm.smtpPort,
+        smtp_encryption: emailForm.encryption,
+        smtp_username: emailForm.username,
+        smtp_password: emailForm.password,
+        smtp_from: emailForm.from,
+        smtp_to: emailForm.to
+      })
+    })
+    if (onAuthError(res)) return
+    const data = await res.json()
+    if (!res.ok || !data.ok) {
+      toast.error(data.error?.message || t.value.email.testFailed)
+      return
+    }
+    toast.success(t.value.email.testSuccess)
+  } catch (e) {
+    toast.error(t.value.email.testFailed + ': ' + e)
+  } finally {
+    testingEmail.value = false
   }
 }
 

@@ -11,8 +11,15 @@ import (
 	"github.com/openprx/fenfa/internal/server/middleware"
 )
 
-func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
+func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ...handlers.FeedbackNotifier) error {
+	if err := g.SetTrustedProxies(cfg.GetTrustedProxies()); err != nil {
+		return err
+	}
 	adminPath := cfg.GetAdminPath()
+	var feedbackNotifier handlers.FeedbackNotifier
+	if len(notifiers) > 0 {
+		feedbackNotifier = notifiers[0]
+	}
 
 	// Static served in main, still ok to keep here if needed
 	g.GET("/healthz", handlers.Healthz(db))
@@ -37,7 +44,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	g.GET("/api/products/slug/:slug", handlers.ProductDetailJSON(db, cfg))
 	g.GET("/api/v1/products/:slug/latest", handlers.PublicLatestRelease(db, cfg))
 	g.GET("/api/v1/products/:slug/announcements", handlers.PublicAnnouncements(db))
-	g.POST("/api/v1/feedback", handlers.PublicCreateFeedback(db))
+	g.POST("/api/v1/feedback", handlers.PublicCreateFeedback(db, feedbackNotifier))
 	g.GET("/icon/:appID", handlers.AppIcon(db))
 	g.GET("/icon/products/:productID", handlers.ProductIcon(db))
 
@@ -118,6 +125,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	// System settings
 	admin.GET("/api/settings", handlers.GetSystemSettings(db))
 	admin.PUT("/api/settings", handlers.UpdateSystemSettings(db))
+	admin.POST("/api/settings/email/test", handlers.TestEmailSettings(db))
 
 	// Upload config (for frontend to know upload endpoint)
 	admin.GET("/api/upload-config", handlers.GetUploadConfig(db))
@@ -150,4 +158,6 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	g.NoRoute(func(c *gin.Context) {
 		c.HTML(http.StatusNotFound, "404.html", gin.H{"Title": "404 · Not Found"})
 	})
+
+	return nil
 }

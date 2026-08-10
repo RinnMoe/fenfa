@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/openprx/fenfa/internal/config"
+	fenfaemail "github.com/openprx/fenfa/internal/email"
 	server "github.com/openprx/fenfa/internal/server"
 	"github.com/openprx/fenfa/internal/store"
 	web "github.com/openprx/fenfa/internal/web"
@@ -56,13 +57,18 @@ func main() {
 	g.StaticFS("/static/admin", http.FS(web.Admin()))
 
 	// Routes
-	server.RegisterRoutes(g, db, cfg)
+	feedbackNotifier := fenfaemail.NewFeedbackNotifier(db, nil)
+	defer feedbackNotifier.Close()
+	if err := server.RegisterRoutes(g, db, cfg, feedbackNotifier); err != nil {
+		log.Fatalf("configure routes failed: %v", err)
+	}
 
 	port := cfg.Server.Port
-	if port == "" { port = "8000" }
+	if port == "" {
+		port = "8000"
+	}
 	log.Printf("fenfa listening on :%s", port)
 	if err := g.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
-

@@ -50,6 +50,8 @@ func AutoMigrate(db *gorm.DB) error {
 			PrimaryDomain:    "http://localhost:8000",
 			SecondaryDomains: "[]", // Empty JSON array
 			Organization:     "Fenfa Distribution",
+			SMTPPort:         587,
+			SMTPEncryption:   "starttls",
 			UpdatedAt:        time.Now(),
 		}
 		if err := db.Create(&settings).Error; err != nil {

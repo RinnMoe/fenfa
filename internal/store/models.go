@@ -82,17 +82,17 @@ type Announcement struct {
 // Feedback represents anonymous user feedback submitted from a product page.
 type Feedback struct {
 	ID              string    `gorm:"primaryKey;size:64" json:"id"`
-	ProductID       string    `gorm:"index;size:64" json:"product_id"`
+	ProductID       string    `gorm:"index;index:idx_feedback_product_created,priority:1;size:64" json:"product_id"`
 	VariantID       string    `gorm:"index;size:64" json:"variant_id"`
 	ReleaseID       string    `gorm:"index;size:64" json:"release_id"`
 	ProductName     string    `gorm:"size:255" json:"product_name"`
 	VariantPlatform string    `gorm:"size:16" json:"variant_platform"`
 	ReleaseVersion  string    `gorm:"size:64" json:"release_version"`
-	Category        string    `gorm:"index;size:32" json:"category"`
+	Category        string    `gorm:"index;index:idx_feedback_category_created,priority:1;size:32" json:"category"`
 	Content         string    `gorm:"type:text" json:"content"`
 	Contact         string    `gorm:"size:255" json:"contact"`
-	Status          string    `gorm:"index;size:16;default:pending" json:"status"`
-	CreatedAt       time.Time `json:"created_at"`
+	Status          string    `gorm:"index;index:idx_feedback_status_created,priority:1;size:16;default:pending" json:"status"`
+	CreatedAt       time.Time `gorm:"index:idx_feedback_created,priority:1;index:idx_feedback_product_created,priority:2;index:idx_feedback_category_created,priority:2;index:idx_feedback_status_created,priority:2" json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
@@ -141,6 +141,16 @@ type SystemSettings struct {
 	SecondaryDomains string    `gorm:"type:text" json:"secondary_domains"` // JSON array stored as text
 	Organization     string    `gorm:"size:255" json:"organization"`
 	UpdatedAt        time.Time `json:"updated_at"`
+
+	// Email notification configuration. The password is never serialized.
+	EmailEnabled   bool   `gorm:"default:false" json:"email_enabled"`
+	SMTPHost       string `gorm:"size:255" json:"-"`
+	SMTPPort       int    `gorm:"default:587" json:"-"`
+	SMTPEncryption string `gorm:"size:16;default:starttls" json:"-"`
+	SMTPUsername   string `gorm:"size:255" json:"-"`
+	SMTPPassword   string `gorm:"size:512" json:"-"`
+	SMTPFrom       string `gorm:"size:255" json:"-"`
+	SMTPTo         string `gorm:"size:255" json:"-"`
 
 	// Upload storage configuration
 	StorageType  string `gorm:"size:32;default:local" json:"storage_type"` // "local" | "s3"

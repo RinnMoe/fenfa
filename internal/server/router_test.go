@@ -49,7 +49,9 @@ func newTestRouter(t *testing.T) (*gin.Engine, *gorm.DB, *config.Config) {
 	}
 
 	engine := gin.New()
-	RegisterRoutes(engine, db, cfg)
+	if err := RegisterRoutes(engine, db, cfg); err != nil {
+		t.Fatalf("register routes: %v", err)
+	}
 	return engine, db, cfg
 }
 
@@ -79,6 +81,33 @@ func TestPublicV1RoutesDoNotRequireToken(t *testing.T) {
 	}
 }
 
+func TestFeedbackRateLimitIgnoresUntrustedForwardedIP(t *testing.T) {
+	engine, _, _ := newTestRouter(t)
+	body := `{"product_id":"prd_router","variant_id":"var_router","release_id":"rel_router","category":"bug","content":"Cannot install"}`
+
+	for index := 0; index < 5; index++ {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("198.51.100.%d", index+1))
+		req.RemoteAddr = "192.0.2.44:1234"
+		engine.ServeHTTP(rr, req)
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("expected request %d to succeed, got %d body=%s", index+1, rr.Code, rr.Body.String())
+		}
+	}
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", "198.51.100.99")
+	req.RemoteAddr = "192.0.2.44:1234"
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected spoofed forwarded IP to remain rate limited, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestFeedbackAdminRoutesRequireAdminToken(t *testing.T) {
 	engine, _, _ := newTestRouter(t)
 
@@ -103,6 +132,37 @@ func TestFeedbackAdminRoutesRequireAdminToken(t *testing.T) {
 	engine.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected feedback 200 for admin token, got %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	for _, test := range []struct {
+		name  string
+		token string
+		code  int
+	}{
+		{name: "missing token", code: http.StatusUnauthorized},
+		{name: "upload token", token: "upload-token", code: http.StatusForbidden},
+	} {
+		t.Run("email test "+test.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/admin/api/settings/email/test", strings.NewReader(`{}`))
+			req.Header.Set("Content-Type", "application/json")
+			if test.token != "" {
+				req.Header.Set("X-Auth-Token", test.token)
+			}
+			engine.ServeHTTP(rr, req)
+			if rr.Code != test.code {
+				t.Fatalf("expected email test status %d, got %d body=%s", test.code, rr.Code, rr.Body.String())
+			}
+		})
+	}
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/admin/api/settings/email/test", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Auth-Token", "admin-token")
+	engine.ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected admin email test request to reach validation, got %d body=%s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -158,7 +218,9 @@ func TestCustomAdminPathRoutes(t *testing.T) {
 	engine := gin.New()
 	tmpl := template.Must(template.ParseFS(web.Templates(), "*.html"))
 	engine.SetHTMLTemplate(tmpl)
-	RegisterRoutes(engine, db, cfg)
+	if err := RegisterRoutes(engine, db, cfg); err != nil {
+		t.Fatalf("register routes: %v", err)
+	}
 
 	// Custom admin API path is protected
 	rr := httptest.NewRecorder()

@@ -4,14 +4,19 @@
     role="dialog"
     aria-modal="true"
     :aria-labelledby="titleID"
+    aria-describedby="feedback-modal-description"
     @click.self="close"
-    @keydown.esc="close"
   >
-    <section class="feedback-modal">
+    <section
+      ref="modalRef"
+      class="feedback-modal"
+      tabindex="-1"
+      @keydown="handleKeydown"
+    >
       <header class="feedback-header">
         <div>
           <h2 :id="titleID">{{ t.feedback.title }}</h2>
-          <p>{{ t.feedback.intro }}</p>
+          <p id="feedback-modal-description">{{ t.feedback.intro }}</p>
         </div>
         <button type="button" class="feedback-close" :aria-label="t.feedback.close" @click="close">×</button>
       </header>
@@ -75,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from '../i18n'
 import { platformLabel } from '../composables/useProduct'
 import type { ProductData, ReleaseItem, VariantItem } from '../types'
@@ -92,6 +97,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const titleID = 'feedback-modal-title'
+const modalRef = ref<HTMLElement | null>(null)
+let returnFocus: HTMLElement | null = null
 const submitting = ref(false)
 const success = ref(false)
 const errorMessage = ref('')
@@ -104,6 +111,29 @@ const form = reactive({
 
 function close() {
   if (!submitting.value) emit('close')
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    close()
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const focusable = modalRef.value?.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )
+  if (!focusable || focusable.length === 0) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
 }
 
 function formatVersion(version: string) {
@@ -149,6 +179,21 @@ async function submit() {
     submitting.value = false
   }
 }
+
+onMounted(async () => {
+  const activeElement = document.activeElement
+  returnFocus = activeElement instanceof HTMLElement ? activeElement : null
+  await nextTick()
+  const firstFocusable = modalRef.value?.querySelector<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )
+  const initialFocus = firstFocusable || modalRef.value
+  initialFocus?.focus()
+})
+
+onBeforeUnmount(() => {
+  returnFocus?.focus()
+})
 </script>
 
 <style scoped>
@@ -172,6 +217,11 @@ async function submit() {
   border-radius: var(--radius-panel);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+}
+
+.feedback-modal:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .feedback-header {

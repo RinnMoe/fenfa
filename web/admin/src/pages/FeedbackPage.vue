@@ -59,7 +59,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in items" :key="item.id" class="feedback-row" @click="selected = item">
+            <tr
+              v-for="item in items"
+              :key="item.id"
+              class="feedback-row"
+              tabindex="0"
+              @click="openDetail(item, $event)"
+              @keydown="handleRowKeydown(item, $event)"
+            >
               <td><span class="badge">{{ categoryLabel(item.category) }}</span></td>
               <td class="feedback-content-cell">{{ preview(item.content) }}</td>
               <td>
@@ -99,14 +106,22 @@
       />
     </section>
 
-    <div v-if="selected" class="feedback-detail-backdrop" @click.self="selected = null">
-      <section class="feedback-detail" role="dialog" aria-modal="true">
+    <div v-if="selected" class="feedback-detail-backdrop" @click.self="closeDetail">
+      <section
+        ref="detailRef"
+        class="feedback-detail"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-detail-title"
+        tabindex="-1"
+        @keydown="handleDetailKeydown"
+      >
         <div class="feedback-detail-head">
           <div>
-            <h2 class="section-title">{{ t.feedback.detailTitle }}</h2>
+            <h2 id="feedback-detail-title" class="section-title">{{ t.feedback.detailTitle }}</h2>
             <span class="date">{{ formatDate(selected.created_at) }}</span>
           </div>
-          <button type="button" class="btn-icon" :aria-label="t.feedback.closeDetail" @click="selected = null">×</button>
+          <button type="button" class="btn-icon" :aria-label="t.feedback.closeDetail" @click="closeDetail">×</button>
         </div>
 
         <div class="feedback-detail-meta">
@@ -126,7 +141,7 @@
         <div class="feedback-detail-content">{{ selected.content }}</div>
 
         <div class="feedback-detail-actions">
-          <button type="button" class="btn-secondary" @click="selected = null">{{ t.feedback.closeDetail }}</button>
+          <button type="button" class="btn-secondary" @click="closeDetail">{{ t.feedback.closeDetail }}</button>
           <button type="button" class="btn-primary" @click="toggleStatus(selected)">
             {{ selected.status === 'processed' ? t.feedback.markPending : t.feedback.markProcessed }}
           </button>
@@ -138,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useProducts } from '../composables/useProducts'
@@ -179,6 +194,10 @@ const total = ref(0)
 const statusFilter = ref('')
 const categoryFilter = ref('')
 const productFilter = ref('')
+const detailRef = ref<HTMLElement | null>(null)
+const detailReturnFocus = ref<HTMLElement | null>(null)
+let feedbackRequestID = 0
+let feedbackAbortController: AbortController | null = null
 
 function categoryLabel(category: FeedbackItem['category']) {
   return t.value.feedback[category]
@@ -201,7 +220,53 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
+function openDetail(item: FeedbackItem, event: Event) {
+  const target = event.currentTarget
+  detailReturnFocus.value = target instanceof HTMLElement ? target : null
+  selected.value = item
+}
+
+function handleRowKeydown(item: FeedbackItem, event: KeyboardEvent) {
+  if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return
+  event.preventDefault()
+  openDetail(item, event)
+}
+
+function closeDetail() {
+  selected.value = null
+  const returnFocus = detailReturnFocus.value
+  detailReturnFocus.value = null
+  void nextTick(() => returnFocus?.focus())
+}
+
+function handleDetailKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeDetail()
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const focusable = detailRef.value?.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )
+  if (!focusable || focusable.length === 0) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 async function loadFeedback() {
+  const requestID = ++feedbackRequestID
+  feedbackAbortController?.abort()
+  const controller = new AbortController()
+  feedbackAbortController = controller
   loading.value = true
   try {
     const query = new URLSearchParams({
@@ -212,7 +277,11 @@ async function loadFeedback() {
     if (categoryFilter.value) query.set('category', categoryFilter.value)
     if (productFilter.value) query.set('product_id', productFilter.value)
 
-    const response = await adminFetch(`api/feedback?${query.toString()}`, { token: token.value })
+    const response = await adminFetch(`api/feedback?${query.toString()}`, {
+      token: token.value,
+      signal: controller.signal
+    })
+    if (requestID !== feedbackRequestID) return
     if (handleAuthError(response)) return
     const payload = await response.json()
     if (!response.ok || !payload.ok) {
@@ -222,15 +291,19 @@ async function loadFeedback() {
     items.value = payload.data?.items || []
     total.value = payload.data?.total || 0
   } catch (error) {
+    if (controller.signal.aborted || requestID !== feedbackRequestID) return
     toast.error(t.value.feedback.loadFailed + ': ' + error)
   } finally {
-    loading.value = false
+    if (requestID === feedbackRequestID) {
+      loading.value = false
+      if (feedbackAbortController === controller) feedbackAbortController = null
+    }
   }
 }
 
 function changePage(nextPage: number) {
   page.value = nextPage
-  loadFeedback()
+  void loadFeedback()
 }
 
 async function toggleStatus(item: FeedbackItem) {
@@ -276,7 +349,10 @@ async function removeFeedback(item: FeedbackItem) {
       toast.error(payload.error?.message || t.value.feedback.deleteFailed)
       return
     }
-    if (selected.value?.id === item.id) selected.value = null
+    if (selected.value?.id === item.id) {
+      selected.value = null
+      detailReturnFocus.value = null
+    }
     toast.success(t.value.feedback.deleteSuccess)
     await loadFeedback()
   } catch (error) {
@@ -286,12 +362,22 @@ async function removeFeedback(item: FeedbackItem) {
 
 watch([statusFilter, categoryFilter, productFilter], () => {
   page.value = 1
-  loadFeedback()
+  void loadFeedback()
+})
+
+watch(selected, async (value) => {
+  if (!value) return
+  await nextTick()
+  detailRef.value?.focus()
 })
 
 onMounted(async () => {
-  await fetchProducts()
-  await loadFeedback()
+  await Promise.all([fetchProducts(), loadFeedback()])
+})
+
+onUnmounted(() => {
+  feedbackRequestID++
+  feedbackAbortController?.abort()
 })
 </script>
 
@@ -311,6 +397,11 @@ onMounted(async () => {
 
 .feedback-row {
   cursor: pointer;
+}
+
+.feedback-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .feedback-content-cell {
@@ -367,6 +458,11 @@ onMounted(async () => {
   border-radius: var(--radius-panel);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+}
+
+.feedback-detail:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .feedback-detail-head {

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	fenfaemail "github.com/openprx/fenfa/internal/email"
 	"github.com/openprx/fenfa/internal/store"
 )
 
@@ -23,6 +26,17 @@ type SystemSettingsResponse struct {
 	SecondaryDomains []string `json:"secondary_domains"`
 	Organization     string   `json:"organization"`
 	UpdatedAt        string   `json:"updated_at"`
+
+	// Email notification configuration (SMTP password is never returned).
+	EmailEnabled    bool   `json:"email_enabled"`
+	EmailConfigured bool   `json:"email_configured"`
+	SMTPHost        string `json:"smtp_host,omitempty"`
+	SMTPPort        int    `json:"smtp_port"`
+	SMTPEncryption  string `json:"smtp_encryption"`
+	SMTPUsername    string `json:"smtp_username,omitempty"`
+	SMTPPasswordSet bool   `json:"smtp_password_set"`
+	SMTPFrom        string `json:"smtp_from,omitempty"`
+	SMTPTo          string `json:"smtp_to,omitempty"`
 
 	// Storage configuration
 	StorageType  string `json:"storage_type"`
@@ -62,6 +76,26 @@ type SystemSettingsUpdateRequest struct {
 	AppleIssuerID   string `json:"apple_issuer_id,omitempty"`
 	ApplePrivateKey string `json:"apple_private_key,omitempty"` // PEM format
 	AppleTeamID     string `json:"apple_team_id,omitempty"`
+
+	// Email notification configuration (password is only updated when non-empty).
+	EmailEnabled   *bool   `json:"email_enabled,omitempty"`
+	SMTPHost       *string `json:"smtp_host,omitempty"`
+	SMTPPort       *int    `json:"smtp_port,omitempty"`
+	SMTPEncryption *string `json:"smtp_encryption,omitempty"`
+	SMTPUsername   *string `json:"smtp_username,omitempty"`
+	SMTPPassword   *string `json:"smtp_password,omitempty"`
+	SMTPFrom       *string `json:"smtp_from,omitempty"`
+	SMTPTo         *string `json:"smtp_to,omitempty"`
+}
+
+type testEmailSettingsRequest struct {
+	SMTPHost       string `json:"smtp_host"`
+	SMTPPort       int    `json:"smtp_port"`
+	SMTPEncryption string `json:"smtp_encryption"`
+	SMTPUsername   string `json:"smtp_username"`
+	SMTPPassword   string `json:"smtp_password"`
+	SMTPFrom       string `json:"smtp_from"`
+	SMTPTo         string `json:"smtp_to"`
 }
 
 // GetSystemSettings returns the current system settings
@@ -88,32 +122,7 @@ func GetSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			secondaryDomains = []string{}
 		}
 
-		// Check if Apple API is configured
-		appleConfigured := settings.AppleKeyID != "" && settings.AppleIssuerID != "" && settings.ApplePrivateKey != ""
-
-		// Check if S3 is configured
-		s3Configured := settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != ""
-
-		storageType := settings.StorageType
-		if storageType == "" {
-			storageType = "local"
-		}
-
-		response := SystemSettingsResponse{
-			PrimaryDomain:    settings.PrimaryDomain,
-			SecondaryDomains: secondaryDomains,
-			Organization:     settings.Organization,
-			UpdatedAt:        settings.UpdatedAt.Format(time.RFC3339),
-			StorageType:      storageType,
-			UploadDomain:     settings.UploadDomain,
-			S3Configured:     s3Configured,
-			S3Endpoint:       settings.S3Endpoint,
-			S3Bucket:         settings.S3Bucket,
-			S3PublicURL:      settings.S3PublicURL,
-			AppleConfigured:  appleConfigured,
-			AppleKeyID:       settings.AppleKeyID,
-			AppleTeamID:      settings.AppleTeamID,
-		}
+		response := systemSettingsResponse(settings, secondaryDomains)
 
 		c.JSON(http.StatusOK, gin.H{
 			"ok":   true,
@@ -192,6 +201,8 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 				PrimaryDomain:    req.PrimaryDomain,
 				SecondaryDomains: secondaryDomainsJSON,
 				Organization:     req.Organization,
+				SMTPPort:         fenfaemail.DefaultSMTPPort,
+				SMTPEncryption:   fenfaemail.EncryptionStartTLS,
 				UpdatedAt:        time.Now(),
 				AppleKeyID:       req.AppleKeyID,
 				AppleIssuerID:    req.AppleIssuerID,
@@ -219,6 +230,11 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			if req.S3PublicURL != nil {
 				settings.S3PublicURL = *req.S3PublicURL
 			}
+			applyEmailSettings(&settings, &req)
+			if err := validateEmailSettings(settings); err != nil {
+				writeSettingsValidationError(c, err)
+				return
+			}
 			if err := db.Create(&settings).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"ok": false,
@@ -240,6 +256,12 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			return
 		} else {
 			// Update existing settings
+			emailSettings := settings
+			applyEmailSettings(&emailSettings, &req)
+			if err := validateEmailSettings(emailSettings); err != nil {
+				writeSettingsValidationError(c, err)
+				return
+			}
 			updates := map[string]interface{}{
 				"primary_domain":    req.PrimaryDomain,
 				"secondary_domains": secondaryDomainsJSON,
@@ -268,6 +290,7 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			if req.S3PublicURL != nil {
 				updates["s3_public_url"] = *req.S3PublicURL
 			}
+			addEmailSettingsUpdates(updates, &req, emailSettings)
 			// Only update Apple credentials if provided (allow partial updates)
 			if req.AppleKeyID != "" {
 				updates["apple_key_id"] = req.AppleKeyID
@@ -305,37 +328,175 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			updatedSecondaryDomains = []string{}
 		}
 
-		// Check if Apple API is configured
-		appleConfigured := settings.AppleKeyID != "" && settings.AppleIssuerID != "" && settings.ApplePrivateKey != ""
-
-		// Check if S3 is configured
-		s3Configured := settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != ""
-
-		storageType := settings.StorageType
-		if storageType == "" {
-			storageType = "local"
-		}
-
-		response := SystemSettingsResponse{
-			PrimaryDomain:    settings.PrimaryDomain,
-			SecondaryDomains: updatedSecondaryDomains,
-			Organization:     settings.Organization,
-			UpdatedAt:        settings.UpdatedAt.Format(time.RFC3339),
-			StorageType:      storageType,
-			UploadDomain:     settings.UploadDomain,
-			S3Configured:     s3Configured,
-			S3Endpoint:       settings.S3Endpoint,
-			S3Bucket:         settings.S3Bucket,
-			S3PublicURL:      settings.S3PublicURL,
-			AppleConfigured:  appleConfigured,
-			AppleKeyID:       settings.AppleKeyID,
-			AppleTeamID:      settings.AppleTeamID,
-		}
+		response := systemSettingsResponse(settings, updatedSecondaryDomains)
 
 		c.JSON(http.StatusOK, gin.H{
 			"ok":   true,
 			"data": response,
 		})
+	}
+}
+
+func systemSettingsResponse(settings store.SystemSettings, secondaryDomains []string) SystemSettingsResponse {
+	storageType := settings.StorageType
+	if storageType == "" {
+		storageType = "local"
+	}
+	smtpConfig := fenfaemail.SMTPConfigFromSettings(settings)
+	return SystemSettingsResponse{
+		PrimaryDomain:    settings.PrimaryDomain,
+		SecondaryDomains: secondaryDomains,
+		Organization:     settings.Organization,
+		UpdatedAt:        settings.UpdatedAt.Format(time.RFC3339),
+		EmailEnabled:     settings.EmailEnabled,
+		EmailConfigured:  fenfaemail.ValidateSMTPConfig(smtpConfig) == nil,
+		SMTPHost:         smtpConfig.Host,
+		SMTPPort:         smtpConfig.Port,
+		SMTPEncryption:   smtpConfig.Encryption,
+		SMTPUsername:     smtpConfig.Username,
+		SMTPPasswordSet:  settings.SMTPPassword != "",
+		SMTPFrom:         smtpConfig.From,
+		SMTPTo:           smtpConfig.To,
+		StorageType:      storageType,
+		UploadDomain:     settings.UploadDomain,
+		S3Configured:     settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != "",
+		S3Endpoint:       settings.S3Endpoint,
+		S3Bucket:         settings.S3Bucket,
+		S3PublicURL:      settings.S3PublicURL,
+		AppleConfigured:  settings.AppleKeyID != "" && settings.AppleIssuerID != "" && settings.ApplePrivateKey != "",
+		AppleKeyID:       settings.AppleKeyID,
+		AppleTeamID:      settings.AppleTeamID,
+	}
+}
+
+func applyEmailSettings(settings *store.SystemSettings, req *SystemSettingsUpdateRequest) {
+	if req.EmailEnabled != nil {
+		settings.EmailEnabled = *req.EmailEnabled
+	}
+	if req.SMTPHost != nil {
+		settings.SMTPHost = strings.TrimSpace(*req.SMTPHost)
+	}
+	if req.SMTPPort != nil {
+		settings.SMTPPort = *req.SMTPPort
+	}
+	if req.SMTPEncryption != nil {
+		settings.SMTPEncryption = strings.ToLower(strings.TrimSpace(*req.SMTPEncryption))
+	}
+	if req.SMTPUsername != nil {
+		settings.SMTPUsername = strings.TrimSpace(*req.SMTPUsername)
+	}
+	if req.SMTPPassword != nil && *req.SMTPPassword != "" {
+		settings.SMTPPassword = *req.SMTPPassword
+	}
+	if req.SMTPFrom != nil {
+		settings.SMTPFrom = strings.TrimSpace(*req.SMTPFrom)
+	}
+	if req.SMTPTo != nil {
+		settings.SMTPTo = strings.TrimSpace(*req.SMTPTo)
+	}
+	if settings.SMTPPort == 0 {
+		settings.SMTPPort = fenfaemail.DefaultSMTPPort
+	}
+	if strings.TrimSpace(settings.SMTPEncryption) == "" {
+		settings.SMTPEncryption = fenfaemail.EncryptionStartTLS
+	}
+}
+
+func addEmailSettingsUpdates(updates map[string]interface{}, req *SystemSettingsUpdateRequest, settings store.SystemSettings) {
+	if req.EmailEnabled != nil {
+		updates["email_enabled"] = settings.EmailEnabled
+	}
+	if req.SMTPHost != nil {
+		updates["smtp_host"] = settings.SMTPHost
+	}
+	if req.SMTPPort != nil {
+		updates["smtp_port"] = settings.SMTPPort
+	}
+	if req.SMTPEncryption != nil {
+		updates["smtp_encryption"] = settings.SMTPEncryption
+	}
+	if req.SMTPUsername != nil {
+		updates["smtp_username"] = settings.SMTPUsername
+	}
+	if req.SMTPPassword != nil && *req.SMTPPassword != "" {
+		updates["smtp_password"] = settings.SMTPPassword
+	}
+	if req.SMTPFrom != nil {
+		updates["smtp_from"] = settings.SMTPFrom
+	}
+	if req.SMTPTo != nil {
+		updates["smtp_to"] = settings.SMTPTo
+	}
+}
+
+func validateEmailSettings(settings store.SystemSettings) error {
+	if !settings.EmailEnabled {
+		return nil
+	}
+	return fenfaemail.ValidateSMTPConfig(fenfaemail.SMTPConfigFromSettings(settings))
+}
+
+func writeSettingsValidationError(c *gin.Context, err error) {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"ok": false,
+		"error": gin.H{
+			"code":    "INVALID_REQUEST",
+			"message": err.Error(),
+		},
+	})
+}
+
+// TestEmailSettings sends a test message using the current form values. It
+// does not persist those values; an empty password reuses the saved password.
+func TestEmailSettings(db *gorm.DB, senders ...fenfaemail.Sender) gin.HandlerFunc {
+	var sender fenfaemail.Sender = fenfaemail.SMTPMailer{}
+	if len(senders) > 0 && senders[0] != nil {
+		sender = senders[0]
+	}
+
+	return func(c *gin.Context) {
+		var req testEmailSettingsRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			writeSettingsValidationError(c, err)
+			return
+		}
+
+		var saved store.SystemSettings
+		err := db.Where("id = ?", "default").First(&saved).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error": gin.H{"code": "DATABASE_ERROR", "message": "Failed to load email settings"}})
+			return
+		}
+		if req.SMTPPassword == "" {
+			req.SMTPPassword = saved.SMTPPassword
+		}
+
+		config := fenfaemail.NormalizeSMTPConfig(fenfaemail.SMTPConfig{
+			Host:       req.SMTPHost,
+			Port:       req.SMTPPort,
+			Encryption: req.SMTPEncryption,
+			Username:   req.SMTPUsername,
+			Password:   req.SMTPPassword,
+			From:       req.SMTPFrom,
+			To:         req.SMTPTo,
+		})
+		if err := fenfaemail.ValidateSMTPConfig(config); err != nil {
+			writeSettingsValidationError(c, err)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+		defer cancel()
+		if err := sender.Send(ctx, config, fenfaemail.Message{
+			Subject: "[Fenfa] SMTP test email",
+			Body:    "This is a test email from Fenfa. SMTP settings are working.",
+		}); err != nil {
+			log.Printf("[email] SMTP test failed")
+			c.JSON(http.StatusBadGateway, gin.H{"ok": false, "error": gin.H{"code": "EMAIL_SEND_FAILED", "message": "Failed to send test email"}})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{"sent": true}})
 	}
 }
 
