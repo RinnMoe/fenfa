@@ -40,7 +40,7 @@ Installation packages are stored in Cloudflare R2 or your configured S3-compatib
 
 1. Deploy the same Fenfa Docker image
 2. Restore /data/fenfa.db
-3. Configure the same environment variables (tokens, domain)
+3. Configure the same environment variables (tokens, domain, admin path, trusted proxies)
 4. Configure the same R2/S3 storage settings
 5. Start the container
 6. Run health check and smoke test
@@ -48,7 +48,7 @@ Installation packages are stored in Cloudflare R2 or your configured S3-compatib
 ## Upgrade Procedure
 
 1. Backup the database (see above)
-2. Pull the new image: `docker pull ghcr.io/rinnmoe/fenfa:0.1.1`
+2. Pull the new image: `docker pull ghcr.io/rinnmoe/fenfa:v0.4.0`
 3. Update the image tag in docker-compose.yml
 4. Recreate the container: `docker compose up -d`
 5. GORM AutoMigrate runs automatically on startup

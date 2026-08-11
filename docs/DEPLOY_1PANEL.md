@@ -23,7 +23,7 @@ cp deploy/1panel/docker-compose.yml.example /opt/fenfa/docker-compose.yml
 cp deploy/1panel/.env.example /opt/fenfa/.env
 ```
 
-Edit /opt/fenfa/.env with your generated tokens and domain.
+Edit /opt/fenfa/.env with your generated tokens and domain. If Fenfa will run behind a reverse proxy, also set `FENFA_TRUSTED_PROXIES` to the proxy's actual IP/CIDR.
 
 In 1Panel: create a new Compose project pointing to /opt/fenfa/docker-compose.yml.
 
@@ -37,6 +37,8 @@ The container listens on 127.0.0.1:8000. Traffic goes through 1Panel reverse pro
 2. Domain: release.yourdomain.com
 3. Proxy target: http://127.0.0.1:8000
 4. Enable HTTPS with Let's Encrypt
+
+If you use the feedback rate limiter or other client-IP-derived behavior, set `FENFA_TRUSTED_PROXIES` in `/opt/fenfa/.env` to the 1Panel reverse proxy IP/CIDR, then recreate the container. Do not use `0.0.0.0/0` or `::/0`.
 
 ## 5. Configure R2/S3 Storage
 

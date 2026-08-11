@@ -95,7 +95,7 @@ The endpoint is public and accepts anonymous feedback submitted from a published
 }
 ```
 
-Requests are limited to five accepted submissions per client IP per ten minutes. Invalid or oversized requests are separately limited to 30 requests per client IP per ten minutes. Rate-limited requests return `429` with `Retry-After`. The in-process limit is intended for a single Fenfa process; multi-instance deployments should add a shared or edge rate limiter.
+Requests are limited to five accepted submissions per client IP per ten minutes. Invalid or oversized requests are separately limited to 30 requests per client IP per ten minutes. Rate-limited requests return `429` with `Retry-After`. The in-process limit is intended for a single Fenfa process; multi-instance deployments should add a shared or edge rate limiter. When running behind a reverse proxy, configure `FENFA_TRUSTED_PROXIES` with the proxy IP/CIDR so the rate limiter uses the real client IP.
 
 ## Upload
 
@@ -138,7 +138,7 @@ X-Auth-Token: <upload_token>
 ### Smart Upload
 
 ```
-POST /admin/api/smart-upload
+POST /<admin_path>/api/smart-upload
 Content-Type: multipart/form-data
 X-Auth-Token: <admin_token>
 ```
@@ -147,36 +147,36 @@ Auto-detects metadata from the package (bundle ID, version, icon, etc). Same fie
 
 ## Admin API
 
-All admin endpoints require `X-Auth-Token` with admin scope.
+All admin endpoints require `X-Auth-Token` with admin scope. Replace `<admin_path>` with the configured admin path (default `admin`).
 
 ### Products
 
 ```
-GET    /admin/api/products                              # List products
-POST   /admin/api/products                              # Create product
-GET    /admin/api/products/:productID                   # Get product with variants
-PUT    /admin/api/products/:productID                   # Update product
-DELETE /admin/api/products/:productID                   # Delete product (cascades)
+GET    /<admin_path>/api/products                              # List products
+POST   /<admin_path>/api/products                              # Create product
+GET    /<admin_path>/api/products/:productID                   # Get product with variants
+PUT    /<admin_path>/api/products/:productID                   # Update product
+DELETE /<admin_path>/api/products/:productID                   # Delete product (cascades)
 ```
 
 ### Variants
 
 ```
-POST   /admin/api/products/:productID/variants          # Create variant
-PUT    /admin/api/variants/:variantID                    # Update variant
-DELETE /admin/api/variants/:variantID                    # Delete variant (cascades)
-GET    /admin/api/variants/:variantID/stats              # Variant visit/download totals
+POST   /<admin_path>/api/products/:productID/variants          # Create variant
+PUT    /<admin_path>/api/variants/:variantID                    # Update variant
+DELETE /<admin_path>/api/variants/:variantID                    # Delete variant (cascades)
+GET    /<admin_path>/api/variants/:variantID/stats              # Variant visit/download totals
 ```
 
 ### Releases
 
 ```
-PUT    /admin/api/releases/:releaseID                    # Update release metadata
-DELETE /admin/api/releases/:releaseID                    # Delete release
-GET    /admin/api/releases/:releaseID/file               # Download installer (admin only)
+PUT    /<admin_path>/api/releases/:releaseID                    # Update release metadata
+DELETE /<admin_path>/api/releases/:releaseID                    # Delete release
+GET    /<admin_path>/api/releases/:releaseID/file               # Download installer (admin only)
 ```
 
-`PUT /admin/api/releases/:releaseID` accepts a JSON body and performs a partial update. At least one field is required. `version` must be non-empty; `build` must be non-negative. Empty strings clear `channel`, `min_os`, and `changelog`.
+`PUT /<admin_path>/api/releases/:releaseID` accepts a JSON body and performs a partial update. At least one field is required. `version` must be non-empty; `build` must be non-negative. Empty strings clear `channel`, `min_os`, and `changelog`.
 
 ```json
 {
@@ -189,7 +189,7 @@ GET    /admin/api/releases/:releaseID/file               # Download installer (a
 }
 ```
 
-`GET /admin/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so the admin token stays out of the browser URL.
+`GET /<admin_path>/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so the admin token stays out of the browser URL.
 
 ### Feedback
 
@@ -231,28 +231,28 @@ APK/IPA packages are re-parsed. If the parsed package identifier does not match 
 ### Publishing
 
 ```
-PUT /admin/api/apps/:appID/publish                      # Publish app
-PUT /admin/api/apps/:appID/unpublish                    # Unpublish app
+PUT /<admin_path>/api/apps/:appID/publish                      # Publish app
+PUT /<admin_path>/api/apps/:appID/unpublish                    # Unpublish app
 ```
 
 ### Devices & Stats
 
 ```
-GET  /admin/api/ios_devices                             # List iOS devices
-GET  /admin/api/variants/:variantID/stats               # Visit and download totals
-POST /admin/api/devices/:id/register-apple              # Register device with Apple
-POST /admin/api/devices/register-apple                  # Batch register devices
+GET  /<admin_path>/api/ios_devices                             # List iOS devices
+GET  /<admin_path>/api/variants/:variantID/stats               # Visit and download totals
+POST /<admin_path>/api/devices/:id/register-apple              # Register device with Apple
+POST /<admin_path>/api/devices/register-apple                  # Batch register devices
 ```
 
 ### Settings
 
 ```
-GET /admin/api/settings                                 # Get system settings
-PUT /admin/api/settings                                 # Update settings
+GET /<admin_path>/api/settings                                 # Get system settings
+PUT /<admin_path>/api/settings                                 # Update settings
 POST /<admin_path>/api/settings/email/test             # Send a test email without saving
-GET /admin/api/upload-config                            # Get upload configuration
-GET /admin/api/apple/status                             # Check Apple API status
-GET /admin/api/apple/devices                            # List Apple-registered devices
+GET /<admin_path>/api/upload-config                            # Get upload configuration
+GET /<admin_path>/api/apple/status                             # Check Apple API status
+GET /<admin_path>/api/apple/devices                            # List Apple-registered devices
 ```
 
 `GET /<admin_path>/api/settings` returns SMTP settings without the password. The
@@ -272,8 +272,8 @@ reuses the saved SMTP password. SMTP errors return `502` with
 ### Export
 
 ```
-GET /admin/exports/releases.csv                         # Export releases
-GET /admin/exports/ios_devices.csv                      # Export iOS devices
+GET /<admin_path>/exports/releases.csv                         # Export releases
+GET /<admin_path>/exports/ios_devices.csv                      # Export iOS devices
 ```
 
 ## Storage

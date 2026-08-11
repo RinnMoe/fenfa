@@ -1,6 +1,6 @@
 services:
   fenfa:
-    image: ghcr.io/rinnmoe/fenfa:0.1.0
+    image: ghcr.io/rinnmoe/fenfa:v0.4.0
     container_name: fenfa
     restart: unless-stopped
     ports:
@@ -9,6 +9,7 @@ services:
       FENFA_ADMIN_TOKEN: ${FENFA_ADMIN_TOKEN}
       FENFA_UPLOAD_TOKEN: ${FENFA_UPLOAD_TOKEN}
       FENFA_PRIMARY_DOMAIN: ${FENFA_PRIMARY_DOMAIN}
+      FENFA_TRUSTED_PROXIES: ${FENFA_TRUSTED_PROXIES:-}
     volumes:
       - ./data:/data
       - ./uploads:/app/uploads

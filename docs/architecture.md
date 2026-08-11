@@ -63,7 +63,7 @@ Product (e.g. "MyApp")
 | `apps` | Legacy single-platform apps (backward compatible) |
 | `ios_devices` | UDID bindings for iOS devices |
 | `provisioning_profiles` | Extracted iOS signing profiles |
-| `system_settings` | Global configuration (domains, S3, Apple API) |
+| `system_settings` | Global configuration (domains, storage, Apple API, SMTP email) |
 | `feedbacks` | Anonymous feedback and product context snapshots |
 
 See `internal/store/models.go` for full schema.
@@ -83,8 +83,12 @@ Request → Gin Router → Auth Middleware → Handler → GORM → SQLite
 
 ### Protected routes (token auth)
 - `POST /upload` — upload builds (upload token)
-- `* /admin/api/*` — admin API (admin token)
-- `* /<adminPath>/api/feedback` — feedback inbox and processing (admin token)
+- `* /<admin_path>/api/*` — admin API, including feedback inbox and email settings (admin token)
+- `* /<admin_path>/exports/*` — CSV exports (admin token)
+
+## Feedback Email Notifications
+
+Accepted feedback is persisted in `feedbacks` first. If SMTP is configured and `email_enabled` is true, `internal/email` asynchronously sends a plain-text notification to `smtp_to`. The notification queue is in-process (capacity 64, up to three attempts), so pending messages are not persisted across process restarts. SMTP settings live in `system_settings`; passwords are never returned by the admin API.
 
 ## iOS Distribution Flow
 
@@ -114,6 +118,7 @@ Local storage is the default. S3-compatible storage can be configured in admin s
 cmd/server/              Entry point (main.go)
 internal/
 ├── config/              Configuration loading
+├── email/               SMTP sending and feedback notifier
 ├── server/
 │   ├── router.go        Route registration
 │   ├── handlers/        HTTP handlers

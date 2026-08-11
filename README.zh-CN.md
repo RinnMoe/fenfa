@@ -13,7 +13,7 @@
 
 ---
 
-RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立维护的 Fork，用于自托管软件版本管理、发布和分发。保留上游 Product -> Variant -> Release 数据模型，并新增强制更新、产品公告和面向软件客户端的公开 API。
+RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立维护的 Fork，用于自托管软件版本管理、发布和分发。保留上游 Product -> Variant -> Release 数据模型，并新增强制更新、产品公告、面向软件客户端的公开 API 和反馈邮件通知。
 
 ## 特性
 
@@ -36,14 +36,14 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 ### Docker
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:0.1.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_TOKEN=你的管理密钥 \
   -e FENFA_UPLOAD_TOKEN=你的上传密钥 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:0.1.0
+  ghcr.io/rinnmoe/fenfa:v0.4.0
 ```
 
 访问 `http://localhost:8000/admin`。
@@ -108,6 +108,7 @@ go build -o fenfa ./cmd/server
 ```
 cmd/server/          程序入口
 internal/server/     HTTP 处理器和路由
+internal/email/      SMTP 发送与反馈通知
 internal/store/      数据模型 (GORM + SQLite)
 internal/web/        内嵌前端资源 (go:embed)
 web/front/           公开下载页 (Vue 3 + Vite)
@@ -122,6 +123,8 @@ web/admin/           管理后台 (Vue 3 + Vite)
 
 ## 文档
 
+- [架构](docs/architecture.md)
+- [API 规范](docs/api-spec.md)
 - [自定义功能说明](docs/customization.md)
 - [1Panel 部署](docs/DEPLOY_1PANEL.md)
 - [备份与升级](docs/BACKUP.md)

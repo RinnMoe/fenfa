@@ -13,7 +13,7 @@
 
 ---
 
-RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx/fenfa) for self-hosted software version management, release, and distribution. It keeps the upstream Product -> Variant -> Release model and adds release force-update flags, product announcements, and client-facing public APIs.
+RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx/fenfa) for self-hosted software version management, release, and distribution. It keeps the upstream Product -> Variant -> Release model and adds release force-update flags, product announcements, client-facing public APIs, and feedback email notifications.
 
 ## Features
 
@@ -36,14 +36,14 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 ### Docker
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:0.1.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_TOKEN=your-admin-token \
   -e FENFA_UPLOAD_TOKEN=your-upload-token \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:0.1.0
+  ghcr.io/rinnmoe/fenfa:v0.4.0
 ```
 
 Visit `http://localhost:8000/admin`.
@@ -108,6 +108,7 @@ Request → Gin Router → Auth Middleware → Handler → GORM → SQLite
 ```
 cmd/server/          Entry point
 internal/server/     HTTP handlers & routing
+internal/email/      SMTP sending and feedback notifier
 internal/store/      Database models (GORM + SQLite)
 internal/web/        Embedded frontend (go:embed)
 web/front/           Public download page (Vue 3 + Vite)
@@ -122,6 +123,8 @@ web/admin/           Admin panel (Vue 3 + Vite)
 
 ## Documentation
 
+- [Architecture](docs/architecture.md)
+- [API Specification](docs/api-spec.md)
 - [Customization](docs/customization.md)
 - [1Panel Deployment](docs/DEPLOY_1PANEL.md)
 - [Backup & Upgrade](docs/BACKUP.md)

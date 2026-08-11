@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- 新增反馈邮件提醒：后台「系统设置 > 邮件通知」支持 SMTP 配置（STARTTLS、SSL/TLS、无加密）、测试邮件，并在收到新反馈时异步发送通知。
+- 新增 `FENFA_TRUSTED_PROXIES` 配置，仅允许受信任反向代理设置客户端 IP 请求头。
+
+### Changed
+- 反馈限流区分成功提交（5 次/10 分钟）和无效/超大请求（30 次/10 分钟），均按客户端 IP 计算。
+
+### Security & Privacy
+- SMTP 密码不会从管理 API 返回，仅通过 `smtp_password_set` 标记是否已设置。
+
 ## v0.4.0 - 2026-08-09
 
 ### Added

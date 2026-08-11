@@ -42,17 +42,39 @@ GET /api/v1/products/:slug/announcements
 
 The latest API reuses the existing `created_at DESC` ordering. The announcements API filters by `enabled=true` and current UTC time window.
 
+### User Feedback & Email Notifications
+
+- Public product pages include an anonymous feedback form backed by `POST /api/v1/feedback`.
+- Admin feedback inbox supports listing, status/category/product filtering, pagination, processing/reopening, and deletion.
+- Accepted feedback is persisted first; when SMTP is enabled, an async plain-text notification is sent to the configured recipient.
+- SMTP is configured in Admin > Settings > Email Notifications and supports STARTTLS, SSL/TLS, and unencrypted connections. `POST /<admin_path>/api/settings/email/test` sends a test email without saving the form.
+- The SMTP password is never returned by the API; `smtp_password_set` indicates whether one is stored.
+
+### Proxy Trust
+
+- `FENFA_TRUSTED_PROXIES` / `trusted_proxies` restricts which proxy IPs/CIDRs may supply client IP headers.
+- Leave it empty when Fenfa is directly exposed; configure it to the actual reverse proxy IP/CIDR when behind Nginx or 1Panel.
+
 ### Admin APIs
 
-Announcement CRUD and release force_update toggle:
+Additional admin endpoints on top of upstream include:
 
 ```
-GET    /admin/api/products/:productID/announcements
-POST   /admin/api/products/:productID/announcements
-GET    /admin/api/announcements/:announcementID
-PUT    /admin/api/announcements/:announcementID
-DELETE /admin/api/announcements/:announcementID
-PUT    /admin/api/releases/:releaseID
+GET    /<admin_path>/api/products/:productID/announcements
+POST   /<admin_path>/api/products/:productID/announcements
+GET    /<admin_path>/api/announcements/:announcementID
+PUT    /<admin_path>/api/announcements/:announcementID
+DELETE /<admin_path>/api/announcements/:announcementID
+PUT    /<admin_path>/api/releases/:releaseID
+GET    /<admin_path>/api/releases/:releaseID/file
+POST   /<admin_path>/api/releases/:releaseID/replace-file
+GET    /<admin_path>/api/feedback
+PATCH  /<admin_path>/api/feedback/:feedbackID
+DELETE /<admin_path>/api/feedback/:feedbackID
+GET    /<admin_path>/api/variants/:variantID/stats
+GET    /<admin_path>/api/settings
+PUT    /<admin_path>/api/settings
+POST   /<admin_path>/api/settings/email/test
 ```
 
 ### Admin UI
@@ -61,9 +83,15 @@ PUT    /admin/api/releases/:releaseID
 - Announcement modal: list, create, edit, enable/disable, delete.
 - Upload forms include a Force Update checkbox.
 - Latest release card can toggle force_update directly.
+- Release cards support post-release metadata edit, installer replacement, and admin download.
+- Feedback inbox supports filters, pagination, processing/reopening, and deletion.
+- Settings includes Storage and Email Notifications sections with a test-email button.
 
 ### Other Changes
 
+- Landing page, configurable `admin_path`, and 404 page.
+- Visit/download statistics simplified from raw event logs to variant totals.
+- S3/R2 staging cleanup and object deletion when releases are removed.
 - `.gitattributes` enforces LF for shell scripts.
 - `Dockerfile` supports `GOPROXY` build arg.
 - `.github/workflows/docker-publish.yml` publishes to GHCR on tag push.
@@ -71,19 +99,20 @@ PUT    /admin/api/releases/:releaseID
 
 ## Database Migration
 
-GORM `AutoMigrate` handles everything automatically:
+GORM `AutoMigrate` handles schema changes idempotently:
 
 - Adds `releases.force_update` with default `false`
-- Creates `announcements` table
-- Existing data is preserved
-- Idempotent across restarts
+- Creates `announcements` and `feedbacks` tables
+- Adds SMTP/email columns to `system_settings`
+- v0.3.3 migration backfills variant visit counts from old `events` rows and then drops the `events` table
+- Existing data is otherwise preserved
 
-No manual SQL or database reset required.
+Backup the database before upgrading, because the legacy events cleanup is not reversible.
 
 ## Docker
 
 ```bash
-docker build -t ghcr.io/rinnmoe/fenfa:0.1.0 .
+docker build -t ghcr.io/rinnmoe/fenfa:v0.4.0 .
 ```
 
 Production deployment uses 1Panel with reverse proxy. See [DEPLOY_1PANEL.md](DEPLOY_1PANEL.md).
