@@ -61,7 +61,8 @@ const translations = {
       hideVersions: '收起版本',
       changelogTitle: '更新说明',
       current: '当前版本',
-      iosHint: 'iOS 首次安装前需要先绑定当前设备 UDID。'
+      iosHint: 'iOS 首次安装前需要先绑定当前设备 UDID。',
+      downloadCount: '{{ count }} 次下载'
     }
   },
   en: {
@@ -120,7 +121,8 @@ const translations = {
       hideVersions: 'Hide versions',
       changelogTitle: 'Changelog',
       current: 'Current',
-      iosHint: 'On iOS, the device must be registered before the first install.'
+      iosHint: 'On iOS, the device must be registered before the first install.',
+      downloadCount: '{{ count }} downloads'
     }
   }
 }

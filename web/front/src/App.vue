@@ -39,6 +39,7 @@
         :product="productData.product"
         :variant="activeVariant"
         :release="activeRelease"
+        :download-count="totalDownloadCount"
       />
 
       <PlatformTabs
@@ -125,7 +126,8 @@ const {
   productData,
   recommendedVariant,
   selectRelease: selectReleaseState,
-  sortedVariants
+  sortedVariants,
+  totalDownloadCount
 } = useProduct()
 const { fetchUDIDStatuses, getVariantAction, handlePrimaryAction: handleUDIDAction, udidBound } = useUDID()
 const { logVisit } = useTracking()

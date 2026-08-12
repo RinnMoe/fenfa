@@ -38,6 +38,12 @@ export function useProduct() {
   const clientPlatform = detectClientPlatform()
   const selectedReleaseByVariant = reactive<Record<string, ReleaseItem | null>>({})
 
+  const totalDownloadCount = computed(() => {
+    return (productData.value?.variants || []).reduce((total, variant) => {
+      return total + variant.releases.reduce((sum, release) => sum + (release.download_count || 0), 0)
+    }, 0)
+  })
+
   const sortedVariants = computed(() => {
     const items = [...(productData.value?.variants || [])]
     return items.sort((left, right) => {
@@ -98,6 +104,7 @@ export function useProduct() {
     recommendedVariant,
     selectRelease,
     selectedReleaseByVariant,
-    sortedVariants
+    sortedVariants,
+    totalDownloadCount
   }
 }
