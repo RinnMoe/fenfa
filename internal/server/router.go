@@ -9,13 +9,16 @@ import (
 	"github.com/openprx/fenfa/internal/config"
 	"github.com/openprx/fenfa/internal/server/handlers"
 	"github.com/openprx/fenfa/internal/server/middleware"
+	"github.com/openprx/fenfa/internal/store"
 )
 
 func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ...handlers.FeedbackNotifier) error {
 	if err := g.SetTrustedProxies(cfg.GetTrustedProxies()); err != nil {
 		return err
 	}
-	adminPath := cfg.GetAdminPath()
+	if err := store.EnsureAdminPath(db, cfg.GetAdminPath()); err != nil {
+		return err
+	}
 	var feedbackNotifier handlers.FeedbackNotifier
 	if len(notifiers) > 0 {
 		feedbackNotifier = notifiers[0]
@@ -77,17 +80,25 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 		c.Next()
 	})
 	upload.OPTIONS("/upload", func(c *gin.Context) { c.Status(204) })
-	upload.POST("/upload", middleware.RequireToken(cfg, "upload"), handlers.Upload(db, cfg))
+	upload.POST("/upload", middleware.RequireUpload(db, cfg), handlers.Upload(db, cfg))
 	upload.OPTIONS("/smart-upload", func(c *gin.Context) { c.Status(204) })
-	upload.POST("/smart-upload", middleware.RequireToken(cfg, "upload"), handlers.SmartUpload(db, cfg))
-	upload.OPTIONS("/"+adminPath+"/api/parse-app", func(c *gin.Context) { c.Status(204) })
-	upload.POST("/"+adminPath+"/api/parse-app", middleware.RequireToken(cfg, "admin"), handlers.ParseAppInfo())
-	upload.OPTIONS("/"+adminPath+"/api/releases/:releaseID/replace-file", func(c *gin.Context) { c.Status(204) })
-	upload.POST("/"+adminPath+"/api/releases/:releaseID/replace-file", middleware.RequireToken(cfg, "admin"), handlers.AdminReplaceReleaseFile(db, cfg))
+	upload.POST("/smart-upload", middleware.RequireUpload(db, cfg), handlers.SmartUpload(db, cfg))
 
-	// Admin APIs (under configurable admin path)
-	admin := g.Group("/" + adminPath)
-	admin.Use(middleware.RequireToken(cfg, "admin"))
+	// Admin APIs use a dynamic path segment so the configured suffix can be
+	// changed from the settings page without restarting the process.
+	admin := g.Group("/:adminPath")
+	admin.Use(middleware.RequireAdminPath(db))
+	admin.POST("/api/auth/login", handlers.AdminLogin(db))
+	admin.GET("/api/auth/status", handlers.AdminAuthStatus(db))
+	admin.POST("/api/auth/setup", handlers.AdminSetup(db))
+	admin.POST("/api/auth/logout", handlers.AdminLogout(db))
+	admin.OPTIONS("/api/parse-app", func(c *gin.Context) { c.Status(204) })
+	admin.OPTIONS("/api/releases/:releaseID/replace-file", func(c *gin.Context) { c.Status(204) })
+	admin.Use(middleware.RequireAdmin(db, cfg))
+	admin.GET("/api/auth/me", handlers.AdminMe(db))
+	admin.PUT("/api/auth/account", handlers.AdminUpdateAccount(db))
+	admin.POST("/api/parse-app", handlers.ParseAppInfo())
+	admin.POST("/api/releases/:releaseID/replace-file", handlers.AdminReplaceReleaseFile(db, cfg))
 	// JSON
 	admin.GET("/api/ios_devices", handlers.AdminListIOSDevices(db))
 	admin.GET("/api/ios_variants", handlers.AdminListIOSVariants(db))
@@ -144,8 +155,17 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 		c.HTML(http.StatusOK, "app.html", gin.H{"Title": "Fenfa", "Message": ""})
 	})
 
-	// Admin HTML page (public page; exports under /<adminPath>/exports require token)
-	g.GET("/"+adminPath, func(c *gin.Context) {
+	// Admin HTML page (public shell; APIs under the current path require auth).
+	g.GET("/:adminPath", middleware.RequireAdminPath(db), func(c *gin.Context) {
+		var settings store.SystemSettings
+		if err := db.Where("id = ?", "default").First(&settings).Error; err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		adminPath := settings.AdminPath
+		if adminPath == "" {
+			adminPath = cfg.GetAdminPath()
+		}
 		if cfg.Server.DevProxyAdmin != "" {
 			target := cfg.Server.DevProxyAdmin + "/"
 			c.Redirect(http.StatusTemporaryRedirect, target)

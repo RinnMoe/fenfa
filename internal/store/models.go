@@ -96,7 +96,8 @@ type Feedback struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
-// AuthToken for upload/admin scopes
+// AuthToken for upload/admin scopes. Admin tokens are retained for API
+// compatibility; the web admin uses AdminUser/AdminSession instead.
 type AuthToken struct {
 	Token     string     `gorm:"primaryKey;size:128"`
 	Label     string     `gorm:"size:128"`
@@ -104,6 +105,27 @@ type AuthToken struct {
 	RateLimit int        `gorm:"default:0"`
 	CreatedAt time.Time  `json:"created_at"`
 	RevokedAt *time.Time `json:"revoked_at"`
+}
+
+// AdminUser is an account that can access the web administration panel.
+// Passwords are stored as bcrypt hashes and are never serialized.
+type AdminUser struct {
+	ID           string    `gorm:"primaryKey;size:64" json:"id"`
+	Username     string    `gorm:"uniqueIndex;size:128" json:"username"`
+	PasswordHash string    `gorm:"size:255" json:"-"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// AdminSession stores a hash of an opaque web-admin or upload-scoped session
+// token. Admin tokens are sent in an HttpOnly cookie; upload-scoped tokens may
+// be held transiently by the browser for a separate upload domain.
+type AdminSession struct {
+	TokenHash string    `gorm:"primaryKey;size:64" json:"-"`
+	UserID    string    `gorm:"index;size:64" json:"user_id"`
+	Scope     string    `gorm:"size:16;default:admin" json:"-"`
+	ExpiresAt time.Time `gorm:"index" json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // IOSDevice stores device UDID bindings
@@ -140,6 +162,7 @@ type SystemSettings struct {
 	PrimaryDomain    string    `gorm:"size:255" json:"primary_domain"`
 	SecondaryDomains string    `gorm:"type:text" json:"secondary_domains"` // JSON array stored as text
 	Organization     string    `gorm:"size:255" json:"organization"`
+	AdminPath        string    `gorm:"size:64" json:"admin_path"`
 	UpdatedAt        time.Time `json:"updated_at"`
 
 	// Email notification configuration. The password is never serialized.

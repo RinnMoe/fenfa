@@ -27,12 +27,20 @@ export default {
   login: {
     title: '分发管理后台',
     subtitle: '版本发布管理控制台',
-    tokenLabel: '访问令牌 (Token)',
-    tokenPlaceholder: '请输入 X-Auth-Token',
+    usernameLabel: '账号',
+    usernamePlaceholder: '请输入管理员账号',
+    passwordLabel: '密码',
+    passwordPlaceholder: '请输入管理员密码',
+    confirmPasswordLabel: '确认密码',
+    confirmPasswordPlaceholder: '请再次输入密码',
     loginButton: '登录',
-    pleaseEnterToken: '请输入 Token',
+    setupButton: '创建管理员并登录',
+    setupHint: '首次使用请先创建管理员账号，创建后即可使用账号密码登录。',
+    pleaseEnterCredentials: '请输入账号和密码',
+    passwordsDoNotMatch: '两次输入的密码不一致',
     loggingIn: '登录中...',
-    invalidToken: 'Token 无效',
+    invalidCredentials: '账号或密码错误',
+    setupComplete: '管理员已创建，请使用新账号登录',
     loginFailed: '登录失败',
     brand: 'RinnMoe Fenfa'
   },
@@ -403,8 +411,7 @@ export default {
   },
 
   messages: {
-    confirmLogout: '确定要退出登录吗？',
-    pleaseEnterToken: '请填写 Token'
+    confirmLogout: '确定要退出登录吗？'
   },
 
   profile: {
@@ -451,6 +458,10 @@ export default {
     organization: '组织名称',
     organizationPlaceholder: '您的公司名称',
     organizationHelp: 'UDID 描述文件中显示的组织名称',
+    adminPath: '后台地址后缀',
+    adminPathPlaceholder: 'admin',
+    adminPathHelp: '修改后台访问地址，例如 /console；保存后需要使用新地址访问。',
+    invalidAdminPath: '后缀只能包含字母、数字、连字符和下划线，长度不超过 64 个字符',
     bundleIdPrefix: 'Bundle ID 前缀',
     bundleIdPrefixPlaceholder: 'com.yourcompany.fenfa',
     bundleIdPrefixHelp: 'UDID 描述文件的 Bundle ID 前缀',

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -258,5 +259,90 @@ func TestCustomAdminPathRoutes(t *testing.T) {
 	}
 	if !strings.Contains(rr.Body.String(), "404") {
 		t.Fatalf("expected 404 page body, got %s", rr.Body.String())
+	}
+}
+
+func TestAdminPasswordLoginAndRuntimePathChange(t *testing.T) {
+	engine, _, cfg := newTestRouter(t)
+	// Verify that the browser session is sufficient and the legacy token is
+	// not needed for the new login flow.
+	cfg.Auth.AdminTokens = nil
+
+	setupRecorder := httptest.NewRecorder()
+	setupRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse","password_confirmation":"correct-horse"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(setupRecorder, setupRequest)
+	if setupRecorder.Code != http.StatusOK {
+		t.Fatalf("expected admin setup 200, got %d body=%s", setupRecorder.Code, setupRecorder.Body.String())
+	}
+	cookie := setupRecorder.Header().Get("Set-Cookie")
+	if cookie == "" {
+		t.Fatal("expected admin session cookie after setup")
+	}
+
+	loginRecorder := httptest.NewRecorder()
+	loginRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/login", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+	loginRequest.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(loginRecorder, loginRequest)
+	if loginRecorder.Code != http.StatusOK {
+		t.Fatalf("expected admin login 200, got %d body=%s", loginRecorder.Code, loginRecorder.Body.String())
+	}
+	var loginPayload struct {
+		Data struct {
+			UploadToken string `json:"upload_token"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(loginRecorder.Body.Bytes(), &loginPayload); err != nil || loginPayload.Data.UploadToken == "" {
+		t.Fatalf("expected upload-scoped session token in login response, body=%s", loginRecorder.Body.String())
+	}
+
+	uploadRecorder := httptest.NewRecorder()
+	uploadRequest := httptest.NewRequest(http.MethodPost, "/upload", nil)
+	uploadRequest.Header.Set("X-Auth-Token", loginPayload.Data.UploadToken)
+	engine.ServeHTTP(uploadRecorder, uploadRequest)
+	if uploadRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected upload session to reach upload validation, got %d body=%s", uploadRecorder.Code, uploadRecorder.Body.String())
+	}
+
+	adminWithUploadTokenRecorder := httptest.NewRecorder()
+	adminWithUploadTokenRequest := httptest.NewRequest(http.MethodGet, "/admin/api/products", nil)
+	adminWithUploadTokenRequest.Header.Set("X-Auth-Token", loginPayload.Data.UploadToken)
+	engine.ServeHTTP(adminWithUploadTokenRecorder, adminWithUploadTokenRequest)
+	if adminWithUploadTokenRecorder.Code != http.StatusForbidden {
+		t.Fatalf("expected upload session to be rejected by admin API, got %d body=%s", adminWithUploadTokenRecorder.Code, adminWithUploadTokenRecorder.Body.String())
+	}
+
+	productsRecorder := httptest.NewRecorder()
+	productsRequest := httptest.NewRequest(http.MethodGet, "/admin/api/products", nil)
+	productsRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(productsRecorder, productsRequest)
+	if productsRecorder.Code != http.StatusOK {
+		t.Fatalf("expected session-authenticated admin API 200, got %d body=%s", productsRecorder.Code, productsRecorder.Body.String())
+	}
+
+	settingsRecorder := httptest.NewRecorder()
+	settingsBody := strings.NewReader(`{"primary_domain":"https://download.example.com","secondary_domains":[],"organization":"Fenfa","admin_path":"console"}`)
+	settingsRequest := httptest.NewRequest(http.MethodPut, "/admin/api/settings", settingsBody)
+	settingsRequest.Header.Set("Content-Type", "application/json")
+	settingsRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(settingsRecorder, settingsRequest)
+	if settingsRecorder.Code != http.StatusOK {
+		t.Fatalf("expected admin path update 200, got %d body=%s", settingsRecorder.Code, settingsRecorder.Body.String())
+	}
+
+	newPathRecorder := httptest.NewRecorder()
+	newPathRequest := httptest.NewRequest(http.MethodGet, "/console/api/products", nil)
+	newPathRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(newPathRecorder, newPathRequest)
+	if newPathRecorder.Code != http.StatusOK {
+		t.Fatalf("expected new admin path 200, got %d body=%s", newPathRecorder.Code, newPathRecorder.Body.String())
+	}
+
+	oldPathRecorder := httptest.NewRecorder()
+	oldPathRequest := httptest.NewRequest(http.MethodGet, "/admin/api/products", nil)
+	oldPathRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(oldPathRecorder, oldPathRequest)
+	if oldPathRecorder.Code != http.StatusNotFound {
+		t.Fatalf("expected old admin path 404, got %d body=%s", oldPathRecorder.Code, oldPathRecorder.Body.String())
 	}
 }

@@ -51,7 +51,8 @@ export function uploadWithProgress(options: UploadRequest): Promise<UploadRespon
     })
 
     xhr.open('POST', options.url)
-    xhr.setRequestHeader('X-Auth-Token', options.token)
+    xhr.withCredentials = true
+    if (options.token) xhr.setRequestHeader('X-Auth-Token', options.token)
     xhr.send(options.formData)
   })
 }

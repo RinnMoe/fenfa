@@ -17,7 +17,7 @@
   },
   "auth": {
     "upload_tokens": ["dev-upload-token"],
-    "admin_tokens": ["dev-admin-token"]
+    "admin_tokens": []
   }
 }
 

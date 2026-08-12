@@ -38,7 +38,8 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 ```bash
 docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
-  -e FENFA_ADMIN_TOKEN=你的管理密钥 \
+  -e FENFA_ADMIN_USERNAME=admin \
+  -e FENFA_ADMIN_PASSWORD=请替换为强密码 \
   -e FENFA_UPLOAD_TOKEN=你的上传密钥 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
@@ -77,10 +78,13 @@ go build -o fenfa ./cmd/server
 | `FENFA_PORT` | HTTP 端口 |
 | `FENFA_DATA_DIR` | 数据库目录 |
 | `FENFA_PRIMARY_DOMAIN` | 主域名 |
-| `FENFA_ADMIN_PATH` | 管理后台路径后缀（默认 `admin`） |
 | `FENFA_TRUSTED_PROXIES` | 允许提供客户端 IP 请求头的代理 IP/CIDR，逗号分隔；留空表示禁用转发 IP 请求头 |
-| `FENFA_ADMIN_TOKEN` | 管理员 Token |
+| `FENFA_ADMIN_USERNAME` | 首次启动时初始化的管理员账号（可选） |
+| `FENFA_ADMIN_PASSWORD` | 首次启动时初始化的管理员密码（至少 8 位，可选） |
+| `FENFA_ADMIN_TOKEN` | 旧版管理员 Token，仅用于兼容旧 API 客户端，不再用于后台登录 |
 | `FENFA_UPLOAD_TOKEN` | 上传 Token |
+
+后台登录现在使用账号密码和 HttpOnly 会话 Cookie。若不设置初始化账号密码，首次打开 `/admin` 时会显示管理员创建表单。后台地址后缀在「系统设置 > 基本设置」中修改，保存后使用新地址访问；`FENFA_ADMIN_PATH` 不再作为运行时配置。
 
 如果部署在 Nginx 或其他反向代理之后，请将 `FENFA_TRUSTED_PROXIES` 设置为代理的实际 IP 或网段，不要使用 `0.0.0.0/0` 或 `::/0`。
 

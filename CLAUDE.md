@@ -41,7 +41,7 @@ cd web/admin && npm run build                 # 构建到 internal/web/dist/admi
 - `internal/config/` - 从 config.json 加载配置
 - `internal/server/router.go` - 所有路由注册
 - `internal/server/handlers/` - HTTP 处理器（上传、下载、manifest、管理 API）
-- `internal/server/middleware/auth.go` - Token 认证（X-Auth-Token 请求头）
+- `internal/server/middleware/auth.go` - 后台会话认证和上传 Token 认证
 - `internal/store/` - GORM 模型和 SQLite 迁移
 - `internal/web/` - 通过 go:embed 嵌入的前端资源
 
@@ -74,7 +74,7 @@ func HandlerName(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 ```
 
 ### 认证
-配置中有两种 token 权限：`upload_tokens`（应用上传）、`admin_tokens`（完整管理权限）。通过 `X-Auth-Token` 请求头传递。
+后台使用账号密码登录并通过 HttpOnly 会话 Cookie 访问管理 API；`upload_tokens` 仍通过 `X-Auth-Token` 为外部客户端提供上传权限，`admin_tokens` 作为旧版管理 API 的兼容入口保留。后台地址后缀存储在 `system_settings`，可从后台系统设置修改。
 
 ### ID 生成
 ID 格式为 `{前缀}_{随机字符串}`，如 `app_7f3xn`、`rel_b1cqa`、`prd_abc123`、`var_def456`。

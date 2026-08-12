@@ -2,8 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 type Config struct {
@@ -22,8 +24,10 @@ type Config struct {
 		DevProxyAdmin    string   `json:"dev_proxy_admin"`
 	} `json:"server"`
 	Auth struct {
-		UploadTokens []string `json:"upload_tokens"`
-		AdminTokens  []string `json:"admin_tokens"`
+		UploadTokens  []string `json:"upload_tokens"`
+		AdminTokens   []string `json:"admin_tokens"`
+		AdminUsername string   `json:"admin_username"`
+		AdminPassword string   `json:"admin_password"`
 	} `json:"auth"`
 }
 
@@ -38,7 +42,9 @@ func Default() *Config {
 	c.Server.DBPath = "data/fenfa.db"
 	c.Server.AdminPath = "admin"
 	c.Auth.UploadTokens = []string{"dev-upload-token"}
-	c.Auth.AdminTokens = []string{"dev-admin-token"}
+	// Web admin access uses database-backed username/password sessions. Keep
+	// legacy admin token support opt-in for existing API clients.
+	c.Auth.AdminTokens = []string{}
 	return c
 }
 
@@ -81,8 +87,11 @@ func applyEnv(c *Config) {
 	if v := os.Getenv("FENFA_UPLOAD_TOKEN"); v != "" {
 		c.Auth.UploadTokens = []string{v}
 	}
-	if v := os.Getenv("FENFA_ADMIN_PATH"); v != "" {
-		c.Server.AdminPath = v
+	if v := os.Getenv("FENFA_ADMIN_USERNAME"); v != "" {
+		c.Auth.AdminUsername = v
+	}
+	if v := os.Getenv("FENFA_ADMIN_PASSWORD"); v != "" {
+		c.Auth.AdminPassword = v
 	}
 	if v := os.Getenv("FENFA_TRUSTED_PROXIES"); v != "" {
 		c.Server.TrustedProxies = splitCSV(v)
@@ -118,11 +127,40 @@ func (c *Config) GetTrustedProxies() []string {
 // GetAdminPath returns the admin panel URL suffix, normalized without
 // leading/trailing slashes and falling back to "admin".
 func (c *Config) GetAdminPath() string {
-	p := strings.Trim(c.Server.AdminPath, "/")
-	if p == "" {
+	p := NormalizeAdminPath(c.Server.AdminPath)
+	if ValidateAdminPath(p) != nil {
 		return "admin"
 	}
 	return p
+}
+
+// NormalizeAdminPath removes leading/trailing slashes from an admin URL path.
+func NormalizeAdminPath(value string) string {
+	return strings.Trim(strings.TrimSpace(value), "/")
+}
+
+// ValidateAdminPath keeps the admin URL to one safe, non-reserved path segment.
+// A single segment is required so the router can switch the path at runtime.
+func ValidateAdminPath(value string) error {
+	if value == "" {
+		return fmt.Errorf("admin path is required")
+	}
+	if len(value) > 64 || !utf8.ValidString(value) {
+		return fmt.Errorf("admin path must be at most 64 characters")
+	}
+	for _, r := range value {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			continue
+		}
+		return fmt.Errorf("admin path may contain only letters, numbers, hyphens, and underscores")
+	}
+
+	switch strings.ToLower(value) {
+	case "api", "apps", "d", "events", "healthz", "icon", "ios", "products", "smart-upload", "static", "udid", "upload":
+		return fmt.Errorf("admin path is reserved")
+	default:
+		return nil
+	}
 }
 
 // GetPrimaryDomain returns the primary domain for Apple communication

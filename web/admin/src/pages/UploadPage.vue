@@ -233,9 +233,12 @@ async function doUpload() {
 
   uploading.value = true
   try {
+    const headers: Record<string, string> = {}
+    if (token.value) headers['X-Auth-Token'] = token.value
     const res = await fetch(uploadBaseURL.value + '/upload', {
       method: 'POST',
-      headers: { 'X-Auth-Token': token.value },
+      credentials: 'include',
+      headers,
       body: fd
     })
     if (handleAuthError(res)) return

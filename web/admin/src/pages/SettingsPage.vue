@@ -69,6 +69,27 @@
               <p v-if="errors.organization" class="error-text">{{ errors.organization }}</p>
             </div>
           </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label required" for="admin-path">{{ t.settings.adminPath }}</label>
+              <p class="help-text">{{ t.settings.adminPathHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <div class="input-prefix">
+                <span>/</span>
+                <input
+                  id="admin-path"
+                  v-model="form.adminPath"
+                  type="text"
+                  class="input"
+                  :placeholder="t.settings.adminPathPlaceholder"
+                  required
+                >
+              </div>
+              <p v-if="errors.adminPath" class="error-text">{{ errors.adminPath }}</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -356,7 +377,7 @@ import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useToast } from '../composables/useToast'
 import Icon from '../components/Icon.vue'
-import { adminFetch } from '../api'
+import { adminFetch, setAdminPath } from '../api'
 
 const { token, handleAuthError: onAuthError } = useAuth()
 
@@ -369,14 +390,16 @@ const lastUpdated = ref('')
 
 const form = reactive({
   primaryDomain: '',
-  organization: ''
+  organization: '',
+  adminPath: 'admin'
 })
 
 const secondaryDomainsText = ref('')
 
 const errors = reactive({
   primaryDomain: '',
-  organization: ''
+  organization: '',
+  adminPath: ''
 })
 
 const storageForm = reactive({
@@ -452,6 +475,7 @@ async function loadSettings() {
     if (data.ok && data.data) {
       form.primaryDomain = data.data.primary_domain || ''
       form.organization = data.data.organization || ''
+      form.adminPath = data.data.admin_path || 'admin'
 
       if (data.data.secondary_domains && Array.isArray(data.data.secondary_domains)) {
         secondaryDomainsText.value = data.data.secondary_domains.join('\n')
@@ -489,6 +513,7 @@ async function loadSettings() {
 function validateForm(): boolean {
   errors.primaryDomain = ''
   errors.organization = ''
+  errors.adminPath = ''
   let isValid = true
 
   if (!form.primaryDomain) {
@@ -501,6 +526,11 @@ function validateForm(): boolean {
 
   if (!form.organization) {
     errors.organization = t.value.settings.requiredField
+    isValid = false
+  }
+
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(form.adminPath)) {
+    errors.adminPath = t.value.settings.invalidAdminPath
     isValid = false
   }
 
@@ -521,6 +551,7 @@ async function handleSave() {
       primary_domain: form.primaryDomain,
       secondary_domains: secondaryDomains,
       organization: form.organization,
+      admin_path: form.adminPath,
       storage_type: storageForm.storageType,
       upload_domain: storageForm.uploadDomain,
       email_enabled: emailForm.enabled,
@@ -564,12 +595,14 @@ async function handleSave() {
       return
     }
 
+    const previousAdminPath = form.adminPath
     toast.success(t.value.settings.saveSuccess)
 
     if (data.data) {
       if (data.data.updated_at) {
         lastUpdated.value = new Date(data.data.updated_at).toLocaleString()
       }
+      form.adminPath = data.data.admin_path || form.adminPath
       storageForm.storageType = data.data.storage_type || 'local'
       storageForm.uploadDomain = data.data.upload_domain || ''
       storageForm.s3Endpoint = data.data.s3_endpoint || ''
@@ -588,6 +621,12 @@ async function handleSave() {
         appleForm.privateKeySet = data.data.apple_configured
         appleForm.privateKey = ''
       }
+    }
+
+    if (form.adminPath !== previousAdminPath) {
+      setAdminPath(form.adminPath)
+      window.location.assign('/' + form.adminPath)
+      return
     }
 
     await checkAppleStatus()
@@ -733,6 +772,17 @@ onMounted(() => {
 
 .settings-field {
   min-width: 0;
+}
+
+.input-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.input-prefix .input {
+  flex: 1;
 }
 
 .apple-status {

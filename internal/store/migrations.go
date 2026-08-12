@@ -19,6 +19,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&Announcement{},
 		&Feedback{},
 		&AuthToken{},
+		&AdminUser{},
+		&AdminSession{},
 		&IOSDevice{},
 		&DeviceAppBinding{},
 		&SystemSettings{},
@@ -60,6 +62,43 @@ func AutoMigrate(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// EnsureAdminPath seeds the database-backed admin path from the startup
+// configuration only when the database does not already have one. This keeps
+// existing installations compatible while allowing the admin UI to own the
+// value afterwards.
+func EnsureAdminPath(db *gorm.DB, adminPath string) error {
+	adminPath = strings.Trim(strings.TrimSpace(adminPath), "/")
+	if adminPath == "" {
+		adminPath = "admin"
+	}
+
+	var settings SystemSettings
+	err := db.Where("id = ?", "default").First(&settings).Error
+	if err == gorm.ErrRecordNotFound {
+		return db.Create(&SystemSettings{
+			ID:               "default",
+			PrimaryDomain:    "http://localhost:8000",
+			SecondaryDomains: "[]",
+			Organization:     "Fenfa Distribution",
+			AdminPath:        adminPath,
+			SMTPPort:         587,
+			SMTPEncryption:   "starttls",
+			UpdatedAt:        time.Now(),
+		}).Error
+	}
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(settings.AdminPath) != "" {
+		return nil
+	}
+
+	return db.Model(&settings).Updates(map[string]interface{}{
+		"admin_path": adminPath,
+		"updated_at": time.Now(),
+	}).Error
 }
 
 func migrateLegacyEvents(db *gorm.DB) error {

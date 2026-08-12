@@ -83,8 +83,8 @@ Request → Gin Router → Auth Middleware → Handler → GORM → SQLite
 
 ### Protected routes (token auth)
 - `POST /upload` — upload builds (upload token)
-- `* /<admin_path>/api/*` — admin API, including feedback inbox and email settings (admin token)
-- `* /<admin_path>/exports/*` — CSV exports (admin token)
+- `* /<admin_path>/api/*` — admin API, including feedback inbox and email settings (admin session cookie; legacy admin token remains compatible)
+- `* /<admin_path>/exports/*` — CSV exports (admin session cookie; legacy admin token remains compatible)
 
 ## Feedback Email Notifications
 

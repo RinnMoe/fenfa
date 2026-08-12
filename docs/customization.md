@@ -89,7 +89,7 @@ POST   /<admin_path>/api/settings/email/test
 
 ### Other Changes
 
-- Landing page, configurable `admin_path`, and 404 page.
+- Landing page, database-backed configurable `admin_path` (Admin > Settings > General), and 404 page. The `server.admin_path` value in an old `config.json` is used only to seed a database that has no saved path; `FENFA_ADMIN_PATH` is not a runtime override.
 - Visit/download statistics simplified from raw event logs to variant totals.
 - S3/R2 staging cleanup and object deletion when releases are removed.
 - `.gitattributes` enforces LF for shell scripts.

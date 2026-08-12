@@ -14,7 +14,31 @@ All JSON responses use a unified structure:
 
 ## Authentication
 
-Protected endpoints require `X-Auth-Token` header. Two token scopes:
+The web admin uses username/password login and an HttpOnly session cookie:
+
+```http
+POST /<admin_path>/api/auth/login
+Content-Type: application/json
+
+{"username":"admin","password":"your-password"}
+```
+
+The response sets `fenfa_admin_session`. Use that cookie for subsequent admin
+API and export requests. The first-run status/setup endpoints are:
+
+```
+GET  /<admin_path>/api/auth/status
+POST /<admin_path>/api/auth/setup
+POST /<admin_path>/api/auth/logout
+GET  /<admin_path>/api/auth/me
+PUT  /<admin_path>/api/auth/account
+```
+
+`/api/auth/setup` is accepted only when no administrator exists. The admin URL
+suffix is stored in SQLite and can be changed from Admin > Settings > General;
+the new suffix takes effect immediately.
+
+External upload clients continue to use the `X-Auth-Token` header. Two token scopes are supported:
 
 - **upload** — can upload builds
 - **admin** — full admin access (includes upload)
@@ -140,14 +164,16 @@ X-Auth-Token: <upload_token>
 ```
 POST /<admin_path>/api/smart-upload
 Content-Type: multipart/form-data
-X-Auth-Token: <admin_token>
+Cookie: fenfa_admin_session=<session>
 ```
 
 Auto-detects metadata from the package (bundle ID, version, icon, etc). Same fields as standard upload but `version` and `build` are auto-parsed.
 
 ## Admin API
 
-All admin endpoints require `X-Auth-Token` with admin scope. Replace `<admin_path>` with the configured admin path (default `admin`).
+Admin endpoints require the `fenfa_admin_session` cookie. The legacy
+`X-Auth-Token` admin scope remains accepted for old API clients. Replace
+`<admin_path>` with the current admin path (default `admin`).
 
 ### Products
 
@@ -189,11 +215,11 @@ GET    /<admin_path>/api/releases/:releaseID/file               # Download insta
 }
 ```
 
-`GET /<admin_path>/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so the admin token stays out of the browser URL.
+`GET /<admin_path>/api/releases/:releaseID/file` returns the stored installer without requiring the product/variant to be published. Local files are streamed directly; S3 objects are fetched and streamed through the server so authentication credentials stay out of the browser URL.
 
 ### Feedback
 
-All feedback endpoints below require the admin token. Replace `<admin_path>` with the configured admin path (default `admin`).
+All feedback endpoints below require the admin session cookie (or the legacy admin token). Replace `<admin_path>` with the current admin path (default `admin`).
 
 ```
 GET    /<admin_path>/api/feedback
@@ -263,6 +289,10 @@ response includes `email_enabled`, `email_configured`, `smtp_host`,
 `PUT /<admin_path>/api/settings` accepts the same SMTP fields plus `smtp_password`.
 An empty password keeps the saved value. When `email_enabled` is true, the
 SMTP host, port, encryption mode, sender, and recipient must be valid.
+
+The settings payload also accepts `admin_path`, a single safe URL segment made
+of letters, numbers, hyphens, or underscores. It is persisted in SQLite and
+takes effect immediately after the update.
 
 `POST /<admin_path>/api/settings/email/test` accepts the current SMTP form values and
 sends a plain-text test message without persisting them. An empty password

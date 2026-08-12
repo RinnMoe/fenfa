@@ -38,7 +38,8 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 ```bash
 docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
-  -e FENFA_ADMIN_TOKEN=your-admin-token \
+  -e FENFA_ADMIN_USERNAME=admin \
+  -e FENFA_ADMIN_PASSWORD=replace-with-a-strong-password \
   -e FENFA_UPLOAD_TOKEN=your-upload-token \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
@@ -77,10 +78,13 @@ See [docs/config.example.json](docs/config.example.json) for all options.
 | `FENFA_PORT` | HTTP port |
 | `FENFA_DATA_DIR` | Database directory |
 | `FENFA_PRIMARY_DOMAIN` | Public domain URL |
-| `FENFA_ADMIN_PATH` | Admin panel URL suffix (default `admin`) |
 | `FENFA_TRUSTED_PROXIES` | Comma-separated proxy IPs/CIDRs allowed to provide client IP headers; empty disables forwarded IP headers |
-| `FENFA_ADMIN_TOKEN` | Admin token |
+| `FENFA_ADMIN_USERNAME` | Bootstrap administrator username on first start (optional) |
+| `FENFA_ADMIN_PASSWORD` | Bootstrap administrator password on first start (8+ characters, optional) |
+| `FENFA_ADMIN_TOKEN` | Legacy admin token for old API clients; no longer used by the web login |
 | `FENFA_UPLOAD_TOKEN` | Upload token |
+
+The web admin now uses username/password login with an HttpOnly session cookie. If bootstrap credentials are omitted, the first visit to `/admin` shows a one-time administrator setup form. Change the admin URL suffix in Admin > Settings > General; the saved value is stored in SQLite and `FENFA_ADMIN_PATH` is no longer a runtime setting.
 
 When running behind Nginx or another reverse proxy, set `FENFA_TRUSTED_PROXIES` to that proxy's actual IP or network. Do not use `0.0.0.0/0` or `::/0`.
 

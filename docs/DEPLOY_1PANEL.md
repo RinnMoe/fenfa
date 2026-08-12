@@ -6,10 +6,10 @@
 - Docker available through 1Panel
 - A domain with DNS pointing to your server
 
-## 1. Generate Production Tokens
+## 1. Generate Production Credentials
 
 ```bash
-openssl rand -hex 32   # FENFA_ADMIN_TOKEN
+openssl rand -base64 24 # FENFA_ADMIN_PASSWORD
 openssl rand -hex 32   # FENFA_UPLOAD_TOKEN
 ```
 
@@ -23,7 +23,7 @@ cp deploy/1panel/docker-compose.yml.example /opt/fenfa/docker-compose.yml
 cp deploy/1panel/.env.example /opt/fenfa/.env
 ```
 
-Edit /opt/fenfa/.env with your generated tokens and domain. If Fenfa will run behind a reverse proxy, also set `FENFA_TRUSTED_PROXIES` to the proxy's actual IP/CIDR.
+Edit /opt/fenfa/.env with the administrator username/password, upload token, and domain. If Fenfa will run behind a reverse proxy, also set `FENFA_TRUSTED_PROXIES` to the proxy's actual IP/CIDR.
 
 In 1Panel: create a new Compose project pointing to /opt/fenfa/docker-compose.yml.
 
@@ -45,7 +45,7 @@ If you use the feedback rate limiter or other client-IP-derived behavior, set `F
 After the container is running:
 
 1. Visit https://release.yourdomain.com/admin
-2. Login with your FENFA_ADMIN_TOKEN
+2. Login with `FENFA_ADMIN_USERNAME` and `FENFA_ADMIN_PASSWORD`
 3. Go to Settings > Storage
 4. Set Storage Mode to S3
 5. Fill in R2 endpoint (https://ACCOUNT_ID.r2.cloudflarestorage.com), bucket, access key, secret key, and public URL
@@ -62,6 +62,6 @@ Expected response with ok: true.
 
 ## 7. Verify
 
-- Admin panel accessible at /admin
+- Admin panel accessible at the configured path (default /admin)
 - Public product page at /products/:slug
 - Public API at /api/v1/products/:slug/latest

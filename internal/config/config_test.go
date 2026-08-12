@@ -25,3 +25,25 @@ func TestTrustedProxiesLoadFromEnvironment(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminPathIsNotOverriddenByEnvironment(t *testing.T) {
+	t.Setenv("FENFA_ADMIN_PATH", "from-env")
+	c := Default()
+	applyEnv(c)
+	if got := c.GetAdminPath(); got != "admin" {
+		t.Fatalf("expected admin path environment variable to be ignored, got %q", got)
+	}
+}
+
+func TestValidateAdminPath(t *testing.T) {
+	for _, path := range []string{"admin", "release-console", "admin_2"} {
+		if err := ValidateAdminPath(path); err != nil {
+			t.Fatalf("expected %q to be valid, got %v", path, err)
+		}
+	}
+	for _, path := range []string{"", "api", "foo/bar", "admin path"} {
+		if err := ValidateAdminPath(path); err == nil {
+			t.Fatalf("expected %q to be invalid", path)
+		}
+	}
+}

@@ -27,12 +27,20 @@ export default {
   login: {
     title: 'Distribution Admin',
     subtitle: 'Release management console',
-    tokenLabel: 'Access Token',
-    tokenPlaceholder: 'Enter X-Auth-Token',
+    usernameLabel: 'Username',
+    usernamePlaceholder: 'Enter administrator username',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter administrator password',
+    confirmPasswordLabel: 'Confirm password',
+    confirmPasswordPlaceholder: 'Enter the password again',
     loginButton: 'Login',
-    pleaseEnterToken: 'Please enter token',
+    setupButton: 'Create admin and log in',
+    setupHint: 'Create the first administrator account to start using username and password login.',
+    pleaseEnterCredentials: 'Enter username and password',
+    passwordsDoNotMatch: 'Passwords do not match',
     loggingIn: 'Logging in...',
-    invalidToken: 'Invalid token',
+    invalidCredentials: 'Invalid username or password',
+    setupComplete: 'Administrator created. Please log in with the new account.',
     loginFailed: 'Login failed',
     brand: 'RinnMoe Fenfa'
   },
@@ -403,8 +411,7 @@ export default {
   },
 
   messages: {
-    confirmLogout: 'Are you sure you want to logout?',
-    pleaseEnterToken: 'Please enter token'
+    confirmLogout: 'Are you sure you want to logout?'
   },
 
   profile: {
@@ -451,6 +458,10 @@ export default {
     organization: 'Organization',
     organizationPlaceholder: 'Your Company Name',
     organizationHelp: 'Organization name displayed in UDID profile',
+    adminPath: 'Admin URL suffix',
+    adminPathPlaceholder: 'admin',
+    adminPathHelp: 'Change the admin URL, for example /console. Use the new address after saving.',
+    invalidAdminPath: 'Use only letters, numbers, hyphens, and underscores (maximum 64 characters)',
     bundleIdPrefix: 'Bundle ID Prefix',
     bundleIdPrefixPlaceholder: 'com.yourcompany.fenfa',
     bundleIdPrefixHelp: 'Bundle ID prefix for UDID profile',

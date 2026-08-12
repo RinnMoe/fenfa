@@ -14,6 +14,7 @@ import (
 	"github.com/openprx/fenfa/internal/config"
 	fenfaemail "github.com/openprx/fenfa/internal/email"
 	server "github.com/openprx/fenfa/internal/server"
+	fenfauth "github.com/openprx/fenfa/internal/server/auth"
 	"github.com/openprx/fenfa/internal/store"
 	web "github.com/openprx/fenfa/internal/web"
 )
@@ -43,6 +44,9 @@ func main() {
 	}
 	if err := store.AutoMigrate(db); err != nil {
 		log.Fatalf("migrate failed: %v", err)
+	}
+	if err := fenfauth.EnsureBootstrapAdmin(db, cfg.Auth.AdminUsername, cfg.Auth.AdminPassword); err != nil {
+		log.Fatalf("initialize admin account failed: %v", err)
 	}
 
 	// Gin engine

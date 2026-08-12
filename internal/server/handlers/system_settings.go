@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/openprx/fenfa/internal/config"
 	fenfaemail "github.com/openprx/fenfa/internal/email"
 	"github.com/openprx/fenfa/internal/store"
 )
@@ -25,6 +26,7 @@ type SystemSettingsResponse struct {
 	PrimaryDomain    string   `json:"primary_domain"`
 	SecondaryDomains []string `json:"secondary_domains"`
 	Organization     string   `json:"organization"`
+	AdminPath        string   `json:"admin_path"`
 	UpdatedAt        string   `json:"updated_at"`
 
 	// Email notification configuration (SMTP password is never returned).
@@ -59,6 +61,7 @@ type SystemSettingsUpdateRequest struct {
 	PrimaryDomain    string   `json:"primary_domain"`
 	SecondaryDomains []string `json:"secondary_domains"`
 	Organization     string   `json:"organization"`
+	AdminPath        *string  `json:"admin_path,omitempty"`
 
 	// Storage configuration (optional)
 	StorageType  *string `json:"storage_type,omitempty"`
@@ -146,6 +149,35 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		var settings store.SystemSettings
+		settingsErr := db.Where("id = ?", "default").First(&settings).Error
+		if settingsErr != nil && settingsErr != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"ok": false,
+				"error": gin.H{
+					"code":    "DATABASE_ERROR",
+					"message": "Failed to query settings",
+				},
+			})
+			return
+		}
+
+		adminPath := "admin"
+		if settingsErr == nil && settings.AdminPath != "" {
+			candidate := config.NormalizeAdminPath(settings.AdminPath)
+			if config.ValidateAdminPath(candidate) == nil {
+				adminPath = candidate
+			}
+		}
+		if req.AdminPath != nil {
+			candidate := config.NormalizeAdminPath(*req.AdminPath)
+			if err := config.ValidateAdminPath(candidate); err != nil {
+				writeSettingsValidationError(c, err)
+				return
+			}
+			adminPath = candidate
+		}
+
 		// Normalize domain URLs: trim trailing slashes
 		req.PrimaryDomain = trimDomainURL(req.PrimaryDomain)
 		for i, d := range req.SecondaryDomains {
@@ -192,8 +224,7 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Update or create settings
-		var settings store.SystemSettings
-		err := db.Where("id = ?", "default").First(&settings).Error
+		err := settingsErr
 		if err == gorm.ErrRecordNotFound {
 			// Create new settings
 			settings = store.SystemSettings{
@@ -201,6 +232,7 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 				PrimaryDomain:    req.PrimaryDomain,
 				SecondaryDomains: secondaryDomainsJSON,
 				Organization:     req.Organization,
+				AdminPath:        adminPath,
 				SMTPPort:         fenfaemail.DefaultSMTPPort,
 				SMTPEncryption:   fenfaemail.EncryptionStartTLS,
 				UpdatedAt:        time.Now(),
@@ -266,6 +298,7 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 				"primary_domain":    req.PrimaryDomain,
 				"secondary_domains": secondaryDomainsJSON,
 				"organization":      req.Organization,
+				"admin_path":        adminPath,
 				"updated_at":        time.Now(),
 			}
 			// Only update storage fields if provided
@@ -342,11 +375,16 @@ func systemSettingsResponse(settings store.SystemSettings, secondaryDomains []st
 	if storageType == "" {
 		storageType = "local"
 	}
+	adminPath := config.NormalizeAdminPath(settings.AdminPath)
+	if config.ValidateAdminPath(adminPath) != nil {
+		adminPath = "admin"
+	}
 	smtpConfig := fenfaemail.SMTPConfigFromSettings(settings)
 	return SystemSettingsResponse{
 		PrimaryDomain:    settings.PrimaryDomain,
 		SecondaryDomains: secondaryDomains,
 		Organization:     settings.Organization,
+		AdminPath:        adminPath,
 		UpdatedAt:        settings.UpdatedAt.Format(time.RFC3339),
 		EmailEnabled:     settings.EmailEnabled,
 		EmailConfigured:  fenfaemail.ValidateSMTPConfig(smtpConfig) == nil,

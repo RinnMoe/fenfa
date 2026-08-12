@@ -8,8 +8,12 @@
     <n-message-provider>
       <n-dialog-provider>
         <!-- Login Page -->
+        <div v-if="!sessionReady" class="loading-state">
+          {{ t.common.loading }}
+        </div>
+
         <LoginPage
-          v-if="!isLoggedIn"
+          v-else-if="!isLoggedIn"
           @login="handleLogin"
         />
 
@@ -80,13 +84,13 @@ const naiveThemeOverrides = computed(() => ({
   }
 }))
 
-const { token, isLoggedIn, handleLogin: authLogin, doLogout, handleAuthError } = useAuth()
+const { token, isLoggedIn, sessionReady, handleLogin: authLogin, doLogout, handleAuthError, restoreSession } = useAuth()
 const { fetchProducts, clearProducts } = useProducts()
 
 const isDev = import.meta.env.DEV
 
-function handleLogin(newToken: string) {
-  authLogin(newToken)
+function handleLogin(uploadToken: string) {
+  authLogin(uploadToken)
 }
 
 async function handleLogout() {
@@ -107,9 +111,7 @@ watch(token, (v) => {
 })
 
 onMounted(() => {
-  if (token.value) {
-    fetchProducts()
-  }
+  void restoreSession()
 })
 </script>
 
