@@ -35,10 +35,10 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 
 ### Docker
 
-`v0.5.0` 包含账号密码登录、安全加固与 Android 差分附件支持。从 `v0.4.0` 升级前，请备份 SQLite 数据库和部署配置。
+`v0.5.1` 包含账号密码登录、安全加固与 Android 差分附件支持。从 `v0.4.0` 升级前，请备份 SQLite 数据库和部署配置。
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.5.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.5.1
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_USERNAME=admin \
   -e FENFA_ADMIN_PASSWORD=请替换为强密码 \
@@ -46,7 +46,7 @@ docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.5.0
+  ghcr.io/rinnmoe/fenfa:v0.5.1
 ```
 
 访问 `http://localhost:8000/admin`。

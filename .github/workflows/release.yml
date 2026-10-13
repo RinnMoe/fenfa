@@ -28,16 +28,16 @@ jobs:
       - name: Install SQLite headers
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
 
+      - name: Build frontend
+        run: |
+          cd web/front && npm ci && npm audit --audit-level=high && npm run build && cd ../..
+          cd web/admin && npm ci && npm audit --audit-level=high && npm run typecheck && npm run build && cd ../..
+
       - name: Verify backend
         run: |
           go test ./...
           go test -race ./...
           go vet ./...
-
-      - name: Build frontend
-        run: |
-          cd web/front && npm ci && npm audit --audit-level=high && npm run build && cd ../..
-          cd web/admin && npm ci && npm audit --audit-level=high && npm run typecheck && npm run build && cd ../..
 
       - name: Build binary (linux/amd64)
         env:

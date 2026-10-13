@@ -35,10 +35,10 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 
 ### Docker
 
-Version `v0.5.0` includes account/password login, security hardening and Android delta attachments. Back up your SQLite database and deployment configuration before upgrading from `v0.4.0`.
+Version `v0.5.1` includes account/password login, security hardening and Android delta attachments. Back up your SQLite database and deployment configuration before upgrading from `v0.4.0`.
 
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.5.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.5.1
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_USERNAME=admin \
   -e FENFA_ADMIN_PASSWORD=replace-with-a-strong-password \
@@ -46,7 +46,7 @@ docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.5.0
+  ghcr.io/rinnmoe/fenfa:v0.5.1
 ```
 
 Visit `http://localhost:8000/admin`.

@@ -1,6 +1,6 @@
 # Multi-stage, multi-arch build for fenfa
 # Frontend build (Node)
-FROM node:20-alpine AS node-builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS node-builder
 WORKDIR /src
 COPY . .
 # Build front and admin (vite)

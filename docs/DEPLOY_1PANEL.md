@@ -1,6 +1,6 @@
 # 1Panel Deployment Guide
 
-> This sample targets `v0.5.0`, with account/password login and Android delta attachments. Before upgrading, back up the SQLite database, deployment configuration and current image digest. Legacy admin tokens remain API-only; initialize an admin account or configure the protected setup flow.
+> This sample targets `v0.5.1`, with account/password login and Android delta attachments. Before upgrading, back up the SQLite database, deployment configuration and current image digest. Legacy admin tokens remain API-only; initialize an admin account or configure the protected setup flow.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@
 
 ```bash
 openssl rand -hex 32   # FENFA_ADMIN_TOKEN only if legacy API clients require it
-openssl rand -base64 24 # FENFA_ADMIN_PASSWORD for v0.5.0
+openssl rand -base64 24 # FENFA_ADMIN_PASSWORD for v0.5.1
 openssl rand -hex 32   # FENFA_SETUP_TOKEN when bootstrap credentials are omitted
 openssl rand -hex 32   # FENFA_UPLOAD_TOKEN
 ```
@@ -27,7 +27,7 @@ cp deploy/1panel/docker-compose.yml.example /opt/fenfa/docker-compose.yml
 cp deploy/1panel/.env.example /opt/fenfa/.env
 ```
 
-The sample defaults to `ghcr.io/rinnmoe/fenfa:v0.5.0`. Set `FENFA_ADMIN_USERNAME`/`FENFA_ADMIN_PASSWORD`, or configure `FENFA_SETUP_TOKEN` for first-run setup. Preserve existing upload/API tokens and storage settings during upgrades. Set the upload token and HTTPS domain. Set `FENFA_TRUSTED_PROXIES` to the proxy actual IP/CIDR.
+The sample defaults to `ghcr.io/rinnmoe/fenfa:v0.5.1`. Set `FENFA_ADMIN_USERNAME`/`FENFA_ADMIN_PASSWORD`, or configure `FENFA_SETUP_TOKEN` for first-run setup. Preserve existing upload/API tokens and storage settings during upgrades. Set the upload token and HTTPS domain. Set `FENFA_TRUSTED_PROXIES` to the proxy actual IP/CIDR.
 
 In 1Panel: create a new Compose project pointing to /opt/fenfa/docker-compose.yml.
 
