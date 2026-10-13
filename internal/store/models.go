@@ -47,6 +47,7 @@ type App struct {
 
 // Release represents a single uploaded build
 type Release struct {
+	DeltaManifest string    `gorm:"type:text" json:"-"`
 	ID            string    `gorm:"primaryKey;size:64" json:"id"`
 	AppID         string    `gorm:"index;size:64" json:"app_id"` // Legacy field kept for compatibility.
 	VariantID     string    `gorm:"index;size:64" json:"variant_id"`
@@ -176,8 +177,10 @@ type SystemSettings struct {
 	SMTPTo         string `gorm:"size:255" json:"-"`
 
 	// Upload storage configuration
-	StorageType  string `gorm:"size:32;default:local" json:"storage_type"` // "local" | "s3"
-	UploadDomain string `gorm:"size:255" json:"upload_domain"`             // Subdomain for uploads (bypasses CDN limits)
+	StorageType          string `gorm:"size:32;default:local" json:"storage_type"` // "local" | "s3"
+	UploadDomain         string `gorm:"size:255" json:"upload_domain"`             // Subdomain for uploads (bypasses CDN limits)
+	UploadAllowedOrigins string `gorm:"type:text" json:"upload_allowed_origins"`   // JSON array of allowed browser origins
+	AdminSetupClaimed    bool   `gorm:"default:false" json:"-"`                    // Atomic first-admin setup claim
 
 	// S3/R2 configuration
 	S3Endpoint  string `gorm:"size:255" json:"-"`

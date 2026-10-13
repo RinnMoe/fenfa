@@ -35,8 +35,10 @@ RinnMoe Fenfa is a maintained fork of [openprx/fenfa](https://github.com/openprx
 
 ### Docker
 
+Version `v0.5.0` includes account/password login, security hardening and Android delta attachments. Back up your SQLite database and deployment configuration before upgrading from `v0.4.0`.
+
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.5.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_USERNAME=admin \
   -e FENFA_ADMIN_PASSWORD=replace-with-a-strong-password \
@@ -44,7 +46,7 @@ docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.4.0
+  ghcr.io/rinnmoe/fenfa:v0.5.0
 ```
 
 Visit `http://localhost:8000/admin`.
@@ -81,10 +83,11 @@ See [docs/config.example.json](docs/config.example.json) for all options.
 | `FENFA_TRUSTED_PROXIES` | Comma-separated proxy IPs/CIDRs allowed to provide client IP headers; empty disables forwarded IP headers |
 | `FENFA_ADMIN_USERNAME` | Bootstrap administrator username on first start (optional) |
 | `FENFA_ADMIN_PASSWORD` | Bootstrap administrator password on first start (8+ characters, optional) |
+| `FENFA_SETUP_TOKEN` | Token required by the first-run setup endpoint when bootstrap credentials are omitted |
 | `FENFA_ADMIN_TOKEN` | Legacy admin token for old API clients; no longer used by the web login |
 | `FENFA_UPLOAD_TOKEN` | Upload token |
 
-The web admin now uses username/password login with an HttpOnly session cookie. If bootstrap credentials are omitted, the first visit to `/admin` shows a one-time administrator setup form. Change the admin URL suffix in Admin > Settings > General; the saved value is stored in SQLite and `FENFA_ADMIN_PATH` is no longer a runtime setting.
+The web admin now uses username/password login with an HttpOnly session cookie. If bootstrap credentials are omitted, first-run setup is enabled only when `FENFA_SETUP_TOKEN` is configured; otherwise the setup endpoint and form remain unavailable. Upload endpoints use the upload-scoped `X-Auth-Token` path and do not accept the admin session cookie. Configure browser upload CORS origins in Admin > Settings > Storage; the primary and upload domains are allowed automatically. Change the admin URL suffix in Admin > Settings > General; the saved value is stored in SQLite and `FENFA_ADMIN_PATH` is no longer a runtime setting.
 
 When running behind Nginx or another reverse proxy, set `FENFA_TRUSTED_PROXIES` to that proxy's actual IP or network. Do not use `0.0.0.0/0` or `::/0`.
 

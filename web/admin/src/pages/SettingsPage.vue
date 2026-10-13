@@ -356,6 +356,22 @@
               </div>
             </div>
           </div>
+
+          <div class="settings-row">
+            <div class="settings-copy">
+              <label class="label" for="upload-allowed-origins">{{ t.storage.uploadAllowedOrigins }}</label>
+              <p class="help-text">{{ t.storage.uploadAllowedOriginsHelp }}</p>
+            </div>
+            <div class="settings-field">
+              <textarea
+                id="upload-allowed-origins"
+                v-model="uploadAllowedOriginsText"
+                class="textarea"
+                :placeholder="t.storage.uploadAllowedOriginsPlaceholder"
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -395,6 +411,7 @@ const form = reactive({
 })
 
 const secondaryDomainsText = ref('')
+const uploadAllowedOriginsText = ref('')
 
 const errors = reactive({
   primaryDomain: '',
@@ -487,6 +504,9 @@ async function loadSettings() {
 
       storageForm.storageType = data.data.storage_type || 'local'
       storageForm.uploadDomain = data.data.upload_domain || ''
+      uploadAllowedOriginsText.value = Array.isArray(data.data.upload_allowed_origins)
+        ? data.data.upload_allowed_origins.join('\n')
+        : ''
       storageForm.s3Endpoint = data.data.s3_endpoint || ''
       storageForm.s3Bucket = data.data.s3_bucket || ''
       storageForm.s3PublicURL = data.data.s3_public_url || ''
@@ -546,6 +566,10 @@ async function handleSave() {
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0)
+    const uploadAllowedOrigins = uploadAllowedOriginsText.value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
 
     const payload: Record<string, any> = {
       primary_domain: form.primaryDomain,
@@ -554,6 +578,7 @@ async function handleSave() {
       admin_path: form.adminPath,
       storage_type: storageForm.storageType,
       upload_domain: storageForm.uploadDomain,
+      upload_allowed_origins: uploadAllowedOrigins,
       email_enabled: emailForm.enabled,
       smtp_host: emailForm.smtpHost,
       smtp_port: emailForm.smtpPort,
@@ -605,6 +630,9 @@ async function handleSave() {
       form.adminPath = data.data.admin_path || form.adminPath
       storageForm.storageType = data.data.storage_type || 'local'
       storageForm.uploadDomain = data.data.upload_domain || ''
+      uploadAllowedOriginsText.value = Array.isArray(data.data.upload_allowed_origins)
+        ? data.data.upload_allowed_origins.join('\n')
+        : ''
       storageForm.s3Endpoint = data.data.s3_endpoint || ''
       storageForm.s3Bucket = data.data.s3_bucket || ''
       storageForm.s3PublicURL = data.data.s3_public_url || ''

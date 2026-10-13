@@ -124,10 +124,20 @@ func RevokeSession(db *gorm.DB, rawToken string) {
 // RevokeUserSessions invalidates all sessions for a user, for example after a
 // password change.
 func RevokeUserSessions(db *gorm.DB, userID string) {
+	RevokeUserSessionsByScope(db, userID, "")
+}
+
+// RevokeUserSessionsByScope invalidates all sessions for a user that have the
+// requested scope. An empty scope revokes every session.
+func RevokeUserSessionsByScope(db *gorm.DB, userID, scope string) {
 	if userID == "" {
 		return
 	}
-	_ = db.Where("user_id = ?", userID).Delete(&store.AdminSession{}).Error
+	query := db.Where("user_id = ?", userID)
+	if scope != "" {
+		query = query.Where("scope = ?", scope)
+	}
+	_ = query.Delete(&store.AdminSession{}).Error
 }
 
 // SetSessionCookie sends the session as an HttpOnly same-site cookie.
@@ -161,7 +171,7 @@ func EnsureBootstrapAdmin(db *gorm.DB, username, password string) error {
 		return fmt.Errorf("count admin users: %w", err)
 	}
 	if count > 0 {
-		return nil
+		return store.MarkAdminSetupClaimed(db)
 	}
 
 	hash, err := HashPassword(password)
@@ -178,7 +188,7 @@ func EnsureBootstrapAdmin(db *gorm.DB, username, password string) error {
 	if err := db.Create(&user).Error; err != nil {
 		return fmt.Errorf("create bootstrap admin: %w", err)
 	}
-	return nil
+	return store.MarkAdminSetupClaimed(db)
 }
 
 func sessionHash(rawToken string) string {

@@ -48,20 +48,77 @@ func AutoMigrate(db *gorm.DB) error {
 	var settings SystemSettings
 	if err := db.Where("id = ?", "default").First(&settings).Error; err == gorm.ErrRecordNotFound {
 		settings = SystemSettings{
-			ID:               "default",
-			PrimaryDomain:    "http://localhost:8000",
-			SecondaryDomains: "[]", // Empty JSON array
-			Organization:     "Fenfa Distribution",
-			SMTPPort:         587,
-			SMTPEncryption:   "starttls",
-			UpdatedAt:        time.Now(),
+			ID:                   "default",
+			PrimaryDomain:        "http://localhost:8000",
+			SecondaryDomains:     "[]", // Empty JSON array
+			UploadAllowedOrigins: "[]",
+			Organization:         "Fenfa Distribution",
+			SMTPPort:             587,
+			SMTPEncryption:       "starttls",
+			UpdatedAt:            time.Now(),
 		}
 		if err := db.Create(&settings).Error; err != nil {
 			return err
 		}
 	}
+	if err := syncAdminSetupClaim(db); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+// ClaimAdminSetup atomically reserves first-admin setup for one request. The
+// claim is deliberately stored in the singleton settings row so concurrent
+// requests cannot both observe an empty admin_users table and create accounts.
+func ClaimAdminSetup(db *gorm.DB) (bool, error) {
+	var lastErr error
+	for attempt := 0; attempt < 20; attempt++ {
+		result := db.Model(&SystemSettings{}).
+			Where("id = ? AND admin_setup_claimed = ?", "default", false).
+			Updates(map[string]interface{}{"admin_setup_claimed": true, "updated_at": time.Now()})
+		if result.Error == nil {
+			return result.RowsAffected == 1, nil
+		}
+		lastErr = result.Error
+		if !strings.Contains(strings.ToLower(result.Error.Error()), "locked") {
+			return false, result.Error
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	return false, lastErr
+}
+
+// ReleaseAdminSetup makes a failed setup attempt retryable. It only clears a
+// claim while no administrator has been created.
+func ReleaseAdminSetup(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&AdminUser{}).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	return db.Model(&SystemSettings{}).Where("id = ? AND admin_setup_claimed = ?", "default", true).
+		Updates(map[string]interface{}{"admin_setup_claimed": false, "updated_at": time.Now()}).Error
+}
+
+// MarkAdminSetupClaimed synchronizes the claim for deployment-provisioned
+// administrator accounts and legacy databases upgraded after an admin exists.
+func MarkAdminSetupClaimed(db *gorm.DB) error {
+	return db.Model(&SystemSettings{}).Where("id = ?", "default").
+		Updates(map[string]interface{}{"admin_setup_claimed": true, "updated_at": time.Now()}).Error
+}
+
+func syncAdminSetupClaim(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&AdminUser{}).Count(&count).Error; err != nil {
+		return err
+	}
+	if count == 0 {
+		return nil
+	}
+	return MarkAdminSetupClaimed(db)
 }
 
 // EnsureAdminPath seeds the database-backed admin path from the startup
@@ -78,14 +135,15 @@ func EnsureAdminPath(db *gorm.DB, adminPath string) error {
 	err := db.Where("id = ?", "default").First(&settings).Error
 	if err == gorm.ErrRecordNotFound {
 		return db.Create(&SystemSettings{
-			ID:               "default",
-			PrimaryDomain:    "http://localhost:8000",
-			SecondaryDomains: "[]",
-			Organization:     "Fenfa Distribution",
-			AdminPath:        adminPath,
-			SMTPPort:         587,
-			SMTPEncryption:   "starttls",
-			UpdatedAt:        time.Now(),
+			ID:                   "default",
+			PrimaryDomain:        "http://localhost:8000",
+			SecondaryDomains:     "[]",
+			UploadAllowedOrigins: "[]",
+			Organization:         "Fenfa Distribution",
+			AdminPath:            adminPath,
+			SMTPPort:             587,
+			SMTPEncryption:       "starttls",
+			UpdatedAt:            time.Now(),
 		}).Error
 	}
 	if err != nil {

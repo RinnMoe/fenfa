@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,10 +19,27 @@ func RequireAdmin(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 	return requireSessionOrToken(db, cfg, "admin")
 }
 
-// RequireUpload accepts a web-admin session for the browser UI and keeps the
-// upload/admin token scopes available to external upload clients.
+// RequireUpload accepts only an upload-scoped bearer token. In particular, an
+// admin session cookie is not accepted here, so cross-origin browser uploads
+// cannot turn the admin cookie into an upload authorization.
 func RequireUpload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
-	return requireSessionOrToken(db, cfg, "upload")
+	return func(c *gin.Context) {
+		token := c.GetHeader("X-Auth-Token")
+		if token == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"ok": false, "error": gin.H{"code": "UNAUTHORIZED", "message": "upload token required"}})
+			return
+		}
+		if user, lookupErr := fenfauth.LookupUploadSession(db, token); lookupErr == nil {
+			c.Set(fenfauth.UserContextKey, user)
+			c.Next()
+			return
+		}
+		if allowedScope(cfg, "upload", token) {
+			c.Next()
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"ok": false, "error": gin.H{"code": "FORBIDDEN", "message": "invalid upload token"}})
+	}
 }
 
 // RequireAdminPath rejects dynamic admin routes that do not match the path
@@ -29,8 +47,8 @@ func RequireUpload(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 // the Gin router.
 func RequireAdminPath(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var settings store.SystemSettings
-		if err := db.Where("id = ?", "default").First(&settings).Error; err != nil {
+		settings, err := loadSystemSettings(db)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"ok": false, "error": gin.H{"code": "NOT_FOUND", "message": "404 Not Found"}})
 			return
 		}
@@ -45,6 +63,22 @@ func RequireAdminPath(db *gorm.DB) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func loadSystemSettings(db *gorm.DB) (store.SystemSettings, error) {
+	var settings store.SystemSettings
+	var err error
+	for attempt := 0; attempt < 20; attempt++ {
+		err = db.Where("id = ?", "default").First(&settings).Error
+		if err == nil || err == gorm.ErrRecordNotFound {
+			return settings, err
+		}
+		if !strings.Contains(strings.ToLower(err.Error()), "locked") {
+			return settings, err
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	return settings, err
 }
 
 // RequireToken is retained for callers that explicitly need the old header

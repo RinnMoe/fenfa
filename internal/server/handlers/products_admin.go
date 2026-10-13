@@ -608,20 +608,22 @@ func AdminDeleteVariant(db *gorm.DB) gin.HandlerFunc {
 }
 
 func adminReleasePayload(release store.Release) gin.H {
+	_, deltaAvailable := activeDelta(release)
 	return gin.H{
-		"id":             release.ID,
-		"version":        release.Version,
-		"build":          release.Build,
-		"created_at":     release.CreatedAt,
-		"download_count": release.DownloadCount,
-		"channel":        release.Channel,
-		"force_update":   release.ForceUpdate,
-		"min_os":         release.MinOS,
-		"changelog":      release.Changelog,
-		"file_ext":       release.FileExt,
-		"file_name":      release.FileName,
-		"size_bytes":     release.SizeBytes,
-		"sha256":         release.SHA256,
+		"id":              release.ID,
+		"version":         release.Version,
+		"build":           release.Build,
+		"created_at":      release.CreatedAt,
+		"download_count":  release.DownloadCount,
+		"channel":         release.Channel,
+		"force_update":    release.ForceUpdate,
+		"min_os":          release.MinOS,
+		"changelog":       release.Changelog,
+		"file_ext":        release.FileExt,
+		"file_name":       release.FileName,
+		"size_bytes":      release.SizeBytes,
+		"sha256":          release.SHA256,
+		"delta_available": deltaAvailable,
 	}
 }
 

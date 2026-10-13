@@ -8,6 +8,7 @@ interface UploadRequest {
   url: string
   token: string
   formData: FormData
+  withCredentials?: boolean
   onProgress?: (percent: number) => void
   onAuthError?: () => void
 }
@@ -50,8 +51,8 @@ export function uploadWithProgress(options: UploadRequest): Promise<UploadRespon
       resolve({ ok: false, error: { message: 'Network error' } })
     })
 
-    xhr.open('POST', options.url)
-    xhr.withCredentials = true
+		xhr.open('POST', options.url)
+		xhr.withCredentials = options.withCredentials ?? true
     if (options.token) xhr.setRequestHeader('X-Auth-Token', options.token)
     xhr.send(options.formData)
   })

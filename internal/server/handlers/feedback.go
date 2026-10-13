@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -15,18 +14,17 @@ import (
 )
 
 const (
-	feedbackStatusPending      = "pending"
-	feedbackStatusProcessed    = "processed"
-	feedbackCategoryBug        = "bug"
-	feedbackCategorySuggest    = "suggestion"
-	feedbackCategoryOther      = "other"
-	feedbackRateWindow         = 10 * time.Minute
-	feedbackRateLimit          = 5
-	feedbackRequestRateLimit   = 30
-	feedbackRateLimiterMaxKeys = 10000
-	feedbackMaxBodyBytes       = 16 * 1024
-	feedbackMaxContentRunes    = 4000
-	feedbackMaxContactRunes    = 255
+	feedbackStatusPending    = "pending"
+	feedbackStatusProcessed  = "processed"
+	feedbackCategoryBug      = "bug"
+	feedbackCategorySuggest  = "suggestion"
+	feedbackCategoryOther    = "other"
+	feedbackRateWindow       = 10 * time.Minute
+	feedbackRateLimit        = 5
+	feedbackRequestRateLimit = 30
+	feedbackMaxBodyBytes     = 16 * 1024
+	feedbackMaxContentRunes  = 4000
+	feedbackMaxContactRunes  = 255
 )
 
 type publicFeedbackInput struct {
@@ -47,83 +45,10 @@ type FeedbackNotifier interface {
 	NotifyFeedback(store.Feedback)
 }
 
-type feedbackRateLimiter struct {
-	mu          sync.Mutex
-	entries     map[string][]time.Time
-	lastCleanup time.Time
-	limit       int
-	maxKeys     int
-}
-
-func newFeedbackRateLimiter(limit int) *feedbackRateLimiter {
-	return &feedbackRateLimiter{
-		entries:     make(map[string][]time.Time),
-		lastCleanup: time.Now(),
-		limit:       limit,
-		maxKeys:     feedbackRateLimiterMaxKeys,
-	}
-}
-
-func (limiter *feedbackRateLimiter) allow(ip string, now time.Time) (bool, time.Duration) {
-	limiter.mu.Lock()
-	defer limiter.mu.Unlock()
-
-	cutoff := now.Add(-feedbackRateWindow)
-	if now.Sub(limiter.lastCleanup) >= time.Minute || len(limiter.entries) >= limiter.maxKeys {
-		for key, timestamps := range limiter.entries {
-			hasRecent := false
-			for _, timestamp := range timestamps {
-				if timestamp.After(cutoff) {
-					hasRecent = true
-					break
-				}
-			}
-			if !hasRecent {
-				delete(limiter.entries, key)
-			}
-		}
-		limiter.lastCleanup = now
-	}
-	previous := limiter.entries[ip]
-	wasTracked := len(previous) > 0
-	kept := previous[:0]
-	for _, timestamp := range previous {
-		if timestamp.After(cutoff) {
-			kept = append(kept, timestamp)
-		}
-	}
-	if len(kept) == 0 {
-		delete(limiter.entries, ip)
-		wasTracked = false
-	} else {
-		limiter.entries[ip] = kept
-	}
-
-	if len(kept) >= limiter.limit {
-		oldest := kept[0]
-		for _, timestamp := range kept[1:] {
-			if timestamp.Before(oldest) {
-				oldest = timestamp
-			}
-		}
-		retryAfter := oldest.Add(feedbackRateWindow).Sub(now)
-		if retryAfter < time.Second {
-			retryAfter = time.Second
-		}
-		return false, retryAfter
-	}
-	if !wasTracked && len(limiter.entries) >= limiter.maxKeys {
-		return false, feedbackRateWindow
-	}
-
-	limiter.entries[ip] = append(kept, now)
-	return true, 0
-}
-
 // PublicCreateFeedback accepts anonymous feedback from a published product page.
 func PublicCreateFeedback(db *gorm.DB, notifiers ...FeedbackNotifier) gin.HandlerFunc {
-	requestLimiter := newFeedbackRateLimiter(feedbackRequestRateLimit)
-	submissionLimiter := newFeedbackRateLimiter(feedbackRateLimit)
+	requestLimiter := newRateLimiter(feedbackRequestRateLimit, feedbackRateWindow)
+	submissionLimiter := newRateLimiter(feedbackRateLimit, feedbackRateWindow)
 	var notifier FeedbackNotifier
 	if len(notifiers) > 0 {
 		notifier = notifiers[0]
@@ -241,9 +166,7 @@ func PublicCreateFeedback(db *gorm.DB, notifiers ...FeedbackNotifier) gin.Handle
 }
 
 func writeFeedbackRateLimitResponse(c *gin.Context, retryAfter time.Duration) {
-	seconds := int((retryAfter + time.Second - 1) / time.Second)
-	c.Header("Retry-After", strconv.Itoa(seconds))
-	c.JSON(http.StatusTooManyRequests, gin.H{"ok": false, "error": gin.H{"code": "RATE_LIMITED", "message": "too many feedback submissions"}})
+	writeRateLimitResponse(c, "too many feedback submissions", retryAfter)
 }
 
 // AdminListFeedback returns paginated feedback for the authenticated admin.

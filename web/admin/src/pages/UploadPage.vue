@@ -237,7 +237,7 @@ async function doUpload() {
     if (token.value) headers['X-Auth-Token'] = token.value
     const res = await fetch(uploadBaseURL.value + '/upload', {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'omit',
       headers,
       body: fd
     })

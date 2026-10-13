@@ -156,7 +156,7 @@ const props = defineProps<{
   variant: { id: string; platform: string; identifier: string } | null
 }>()
 
-// Dynamic upload URL (may point to a different domain)
+// Dynamic binary upload URL (may point to a different domain)
 const uploadBaseURL = ref('')
 
 async function fetchUploadConfig() {
@@ -258,7 +258,7 @@ async function parseAppInfo() {
   fd.set('app_file', selectedFile.value)
 
   const result = await uploadWithProgress({
-    url: uploadBaseURL.value + adminURL('api/parse-app'),
+    url: adminURL('api/parse-app'),
     token: props.token,
     formData: fd,
     onProgress: (percent) => {
@@ -320,6 +320,7 @@ async function handleUpload() {
     url: uploadBaseURL.value + '/upload',
     token: props.token,
     formData: fd,
+    withCredentials: false,
     onProgress: (percent) => {
       uploadProgress.value = percent
     },

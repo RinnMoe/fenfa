@@ -138,14 +138,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { NModal } from 'naive-ui'
 import { useI18n } from '../i18n'
 import { useAuth } from '../composables/useAuth'
 import { useToast } from '../composables/useToast'
 import { uploadWithProgress } from '../composables/useUpload'
 import Icon from './Icon.vue'
-import { adminFetch, adminURL } from '../api'
+import { adminURL } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -161,7 +161,6 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { token, handleAuthError } = useAuth()
 const toast = useToast()
-const uploadBaseURL = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
 const isDragging = ref(false)
@@ -202,17 +201,6 @@ const acceptTypes = computed(() => {
 
 const canReplace = computed(() => {
   return !!selectedFile.value && form.version.trim().length > 0 && !uploading.value
-})
-
-onMounted(async () => {
-  try {
-    const res = await adminFetch('api/upload-config', { token: token.value })
-    if (!res.ok) return
-    const payload = await res.json()
-    if (payload.ok && payload.data?.upload_domain) {
-      uploadBaseURL.value = payload.data.upload_domain
-    }
-  } catch {}
 })
 
 watch(() => props.show, (show) => {
@@ -302,7 +290,7 @@ async function parseAppInfo() {
   const fd = new FormData()
   fd.set('app_file', selectedFile.value)
   const result = await uploadWithProgress({
-    url: uploadBaseURL.value + adminURL('api/parse-app'),
+    url: adminURL('api/parse-app'),
     token: token.value,
     formData: fd,
     onProgress: (percent) => { parseProgress.value = percent },
@@ -343,7 +331,7 @@ async function handleReplace() {
   uploadProgress.value = 0
   uploadResult.value = null
   const response = await uploadWithProgress({
-    url: uploadBaseURL.value + adminURL(`api/releases/${props.release.id}/replace-file`),
+    url: adminURL(`api/releases/${props.release.id}/replace-file`),
     token: token.value,
     formData: fd,
     onProgress: (percent) => { uploadProgress.value = percent },

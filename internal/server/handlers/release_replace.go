@@ -186,18 +186,19 @@ func AdminReplaceReleaseFile(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 		}
 
 		updates := map[string]any{
-			"version":      version,
-			"build":        build,
-			"channel":      channel,
-			"min_os":       minOS,
-			"changelog":    changelog,
-			"force_update": forceUpdate,
-			"file_name":    filename,
-			"file_ext":     ext,
-			"mime_type":    contentTypeForExt(ext),
-			"size_bytes":   sizeBytes,
-			"sha256":       sha,
-			"storage_path": newStoragePath,
+			"version":        version,
+			"build":          build,
+			"channel":        channel,
+			"min_os":         minOS,
+			"changelog":      changelog,
+			"force_update":   forceUpdate,
+			"file_name":      filename,
+			"file_ext":       ext,
+			"mime_type":      contentTypeForExt(ext),
+			"size_bytes":     sizeBytes,
+			"sha256":         sha,
+			"storage_path":   newStoragePath,
+			"delta_manifest": "",
 		}
 
 		txErr := db.Transaction(func(tx *gorm.DB) error {

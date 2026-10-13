@@ -277,6 +277,7 @@ async function handleUpload() {
     url: uploadBaseURL.value + '/upload',
     token: token.value,
     formData: fd,
+    withCredentials: false,
     onProgress: (percent) => {
       uploadProgress.value = percent
     },

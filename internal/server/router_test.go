@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/openprx/fenfa/internal/config"
+	fenfauth "github.com/openprx/fenfa/internal/server/auth"
 	"github.com/openprx/fenfa/internal/store"
 	web "github.com/openprx/fenfa/internal/web"
 )
@@ -36,6 +37,7 @@ func newTestRouter(t *testing.T) (*gin.Engine, *gorm.DB, *config.Config) {
 	cfg.Server.PrimaryDomain = "https://download.example.com"
 	cfg.Auth.AdminTokens = []string{"admin-token"}
 	cfg.Auth.UploadTokens = []string{"upload-token"}
+	cfg.Auth.SetupToken = "setup-token"
 
 	product := store.Product{ID: "prd_router", Slug: "router-demo", Name: "Router Demo", Published: true}
 	if err := db.Create(&product).Error; err != nil {
@@ -271,6 +273,7 @@ func TestAdminPasswordLoginAndRuntimePathChange(t *testing.T) {
 	setupRecorder := httptest.NewRecorder()
 	setupRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse","password_confirmation":"correct-horse"}`))
 	setupRequest.Header.Set("Content-Type", "application/json")
+	setupRequest.Header.Set("X-Setup-Token", cfg.Auth.SetupToken)
 	engine.ServeHTTP(setupRecorder, setupRequest)
 	if setupRecorder.Code != http.StatusOK {
 		t.Fatalf("expected admin setup 200, got %d body=%s", setupRecorder.Code, setupRecorder.Body.String())
@@ -344,5 +347,230 @@ func TestAdminPasswordLoginAndRuntimePathChange(t *testing.T) {
 	engine.ServeHTTP(oldPathRecorder, oldPathRequest)
 	if oldPathRecorder.Code != http.StatusNotFound {
 		t.Fatalf("expected old admin path 404, got %d body=%s", oldPathRecorder.Code, oldPathRecorder.Body.String())
+	}
+}
+
+func TestAdminSetupRejectsMissingToken(t *testing.T) {
+	engine, db, _ := newTestRouter(t)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+	request.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected missing setup token to return 401, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var count int64
+	if err := db.Model(&store.AdminUser{}).Count(&count).Error; err != nil {
+		t.Fatalf("count admin users: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("missing setup token must not create an admin, got %d", count)
+	}
+}
+
+func TestAdminSetupUnavailableWithoutConfiguredToken(t *testing.T) {
+	engine, _, cfg := newTestRouter(t)
+	cfg.Auth.SetupToken = ""
+
+	statusRecorder := httptest.NewRecorder()
+	statusRequest := httptest.NewRequest(http.MethodGet, "/admin/api/auth/status", nil)
+	engine.ServeHTTP(statusRecorder, statusRequest)
+	if statusRecorder.Code != http.StatusOK || strings.Contains(statusRecorder.Body.String(), `"setup_required":true`) {
+		t.Fatalf("setup status must not expose an unconfigured setup form, got %d body=%s", statusRecorder.Code, statusRecorder.Body.String())
+	}
+
+	setupRecorder := httptest.NewRecorder()
+	setupRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(setupRecorder, setupRequest)
+	if setupRecorder.Code != http.StatusNotFound {
+		t.Fatalf("expected setup to be hidden without a configured token, got %d body=%s", setupRecorder.Code, setupRecorder.Body.String())
+	}
+}
+
+func TestAdminSetupReturns409BeforeBcrypt(t *testing.T) {
+	engine, db, cfg := newTestRouter(t)
+	if err := db.Create(&store.AdminUser{ID: "usr_existing", Username: "existing", PasswordHash: "not-a-bcrypt-hash"}).Error; err != nil {
+		t.Fatalf("seed admin: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(fmt.Sprintf(`{"username":"another","password":%q}`, strings.Repeat("p", 100))))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Setup-Token", cfg.Auth.SetupToken)
+	engine.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected existing admin to return 409 before bcrypt, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestAdminLoginRateLimitAndSuccessResets(t *testing.T) {
+	engine, db, _ := newTestRouter(t)
+	hash, err := fenfauth.HashPassword("correct-horse")
+	if err != nil {
+		t.Fatalf("hash test password: %v", err)
+	}
+	if err := db.Create(&store.AdminUser{ID: "usr_login", Username: "admin", PasswordHash: hash}).Error; err != nil {
+		t.Fatalf("seed login admin: %v", err)
+	}
+
+	login := func(password string) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/login", strings.NewReader(fmt.Sprintf(`{"username":"admin","password":%q}`, password)))
+		request.Header.Set("Content-Type", "application/json")
+		request.RemoteAddr = "192.0.2.55:1234"
+		engine.ServeHTTP(recorder, request)
+		return recorder
+	}
+	for i := 0; i < 4; i++ {
+		if recorder := login("wrong-password"); recorder.Code != http.StatusUnauthorized {
+			t.Fatalf("expected failed login %d to return 401, got %d body=%s", i+1, recorder.Code, recorder.Body.String())
+		}
+	}
+	if recorder := login("correct-horse"); recorder.Code != http.StatusOK {
+		t.Fatalf("expected valid login after failed attempts to succeed, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if recorder := login("wrong-password"); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("successful login should reset account limiter, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	limitedEngine := engine
+	for i := 0; i < 5; i++ {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/login", strings.NewReader(`{"username":"limited","password":"wrong-password"}`))
+		request.Header.Set("Content-Type", "application/json")
+		request.RemoteAddr = "192.0.2.56:1234"
+		limitedEngine.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusUnauthorized {
+			t.Fatalf("expected failed login %d to return 401, got %d body=%s", i+1, recorder.Code, recorder.Body.String())
+		}
+	}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/login", strings.NewReader(`{"username":"limited","password":"wrong-password"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.RemoteAddr = "192.0.2.56:1234"
+	limitedEngine.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected sixth failed login to return 429, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestAdminLogoutRevokesUploadSession(t *testing.T) {
+	engine, db, cfg := newTestRouter(t)
+	setupRecorder := httptest.NewRecorder()
+	setupRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	setupRequest.Header.Set("X-Setup-Token", cfg.Auth.SetupToken)
+	engine.ServeHTTP(setupRecorder, setupRequest)
+	if setupRecorder.Code != http.StatusOK {
+		t.Fatalf("setup admin: %d body=%s", setupRecorder.Code, setupRecorder.Body.String())
+	}
+	var payload struct {
+		Data struct {
+			UploadToken string `json:"upload_token"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(setupRecorder.Body.Bytes(), &payload); err != nil || payload.Data.UploadToken == "" {
+		t.Fatalf("decode setup upload token: %v body=%s", err, setupRecorder.Body.String())
+	}
+	cookie := setupRecorder.Header().Get("Set-Cookie")
+	if cookie == "" {
+		t.Fatal("setup must return an admin session cookie")
+	}
+
+	logoutRecorder := httptest.NewRecorder()
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/logout", nil)
+	logoutRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(logoutRecorder, logoutRequest)
+	if logoutRecorder.Code != http.StatusOK {
+		t.Fatalf("logout: %d body=%s", logoutRecorder.Code, logoutRecorder.Body.String())
+	}
+	if _, err := fenfauth.LookupUploadSession(db, payload.Data.UploadToken); err == nil {
+		t.Fatal("expected logout to revoke the upload session")
+	}
+
+	uploadRecorder := httptest.NewRecorder()
+	uploadRequest := httptest.NewRequest(http.MethodPost, "/upload", nil)
+	uploadRequest.Header.Set("X-Auth-Token", payload.Data.UploadToken)
+	engine.ServeHTTP(uploadRecorder, uploadRequest)
+	if uploadRecorder.Code != http.StatusForbidden {
+		t.Fatalf("expected revoked upload token to return 403, got %d body=%s", uploadRecorder.Code, uploadRecorder.Body.String())
+	}
+}
+
+func TestUploadRejectsUnconfiguredOriginAndCookieOnlyAuth(t *testing.T) {
+	engine, db, cfg := newTestRouter(t)
+	if err := db.Model(&store.SystemSettings{}).Where("id = ?", "default").Updates(map[string]interface{}{
+		"primary_domain": "https://download.example.com",
+		"upload_domain":  "https://upload.example.com",
+	}).Error; err != nil {
+		t.Fatalf("configure upload origins: %v", err)
+	}
+
+	for _, method := range []string{http.MethodOptions, http.MethodPost} {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(method, "/upload", nil)
+		request.Header.Set("Origin", "https://evil.example.com")
+		request.Header.Set("X-Auth-Token", "upload-token")
+		engine.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusForbidden || recorder.Header().Get("Access-Control-Allow-Origin") != "" || recorder.Header().Get("Access-Control-Allow-Credentials") != "" {
+			t.Fatalf("expected unconfigured origin to be rejected without CORS headers, got %d headers=%v body=%s", recorder.Code, recorder.Header(), recorder.Body.String())
+		}
+	}
+
+	allowedRecorder := httptest.NewRecorder()
+	allowedRequest := httptest.NewRequest(http.MethodOptions, "/upload", nil)
+	allowedRequest.Header.Set("Origin", cfg.Server.PrimaryDomain)
+	engine.ServeHTTP(allowedRecorder, allowedRequest)
+	if allowedRecorder.Code != http.StatusNoContent || allowedRecorder.Header().Get("Access-Control-Allow-Origin") != cfg.Server.PrimaryDomain {
+		t.Fatalf("expected configured origin to receive CORS preflight, got %d headers=%v", allowedRecorder.Code, allowedRecorder.Header())
+	}
+	if allowedRecorder.Header().Get("Access-Control-Allow-Credentials") != "" {
+		t.Fatal("upload CORS must not enable browser credentials")
+	}
+
+	setupRecorder := httptest.NewRecorder()
+	setupRequest := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	setupRequest.Header.Set("X-Setup-Token", cfg.Auth.SetupToken)
+	engine.ServeHTTP(setupRecorder, setupRequest)
+	if setupRecorder.Code != http.StatusOK {
+		t.Fatalf("setup admin: %d body=%s", setupRecorder.Code, setupRecorder.Body.String())
+	}
+	cookie := setupRecorder.Header().Get("Set-Cookie")
+	cookieOnlyRecorder := httptest.NewRecorder()
+	cookieOnlyRequest := httptest.NewRequest(http.MethodPost, "/upload", nil)
+	cookieOnlyRequest.Header.Set("Cookie", cookie)
+	engine.ServeHTTP(cookieOnlyRecorder, cookieOnlyRequest)
+	if cookieOnlyRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected cookie-only upload to be rejected, got %d body=%s", cookieOnlyRecorder.Code, cookieOnlyRecorder.Body.String())
+	}
+}
+
+func TestConcurrentAdminSetupCreatesSingleAdmin(t *testing.T) {
+	engine, db, cfg := newTestRouter(t)
+	statuses := make(chan int, 2)
+	for i := 0; i < 2; i++ {
+		go func(index int) {
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/admin/api/auth/setup", strings.NewReader(`{"username":"admin","password":"correct-horse"}`))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("X-Setup-Token", cfg.Auth.SetupToken)
+			request.RemoteAddr = fmt.Sprintf("192.0.2.%d:1234", index+60)
+			engine.ServeHTTP(recorder, request)
+			statuses <- recorder.Code
+		}(i)
+	}
+
+	first, second := <-statuses, <-statuses
+	if !((first == http.StatusOK && second == http.StatusConflict) || (first == http.StatusConflict && second == http.StatusOK)) {
+		t.Fatalf("expected one setup success and one conflict, got %d and %d", first, second)
+	}
+	var count int64
+	if err := db.Model(&store.AdminUser{}).Count(&count).Error; err != nil {
+		t.Fatalf("count concurrent admins: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one admin after concurrent setup, got %d", count)
 	}
 }

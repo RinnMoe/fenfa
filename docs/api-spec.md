@@ -34,16 +34,39 @@ GET  /<admin_path>/api/auth/me
 PUT  /<admin_path>/api/auth/account
 ```
 
-`/api/auth/setup` is accepted only when no administrator exists. The admin URL
-suffix is stored in SQLite and can be changed from Admin > Settings > General;
-the new suffix takes effect immediately.
+`/api/auth/setup` is available only when `FENFA_SETUP_TOKEN` (or
+`auth.setup_token` in `config.json`) is configured. It returns `404` when setup
+is disabled and requires the configured token in either the JSON body or the
+`X-Setup-Token` header:
+
+```http
+POST /<admin_path>/api/auth/setup
+Content-Type: application/json
+X-Setup-Token: operator-secret
+
+{"username":"admin","password":"your-password","password_confirmation":"your-password"}
+```
+
+Setup is accepted only when no administrator exists. The admin URL suffix is
+stored in SQLite and can be changed from Admin > Settings > General; the new
+suffix takes effect immediately.
 
 External upload clients continue to use the `X-Auth-Token` header. Two token scopes are supported:
 
 - **upload** — can upload builds
 - **admin** — full admin access (includes upload)
 
+The `/upload` and `/smart-upload` endpoints do not accept the admin session
+cookie; browser uploads must use an upload-scoped `X-Auth-Token`. Upload CORS
+allows the configured primary/upload domains and the optional
+`upload_allowed_origins` list in System Settings. Other origins are rejected.
+
 ## Public Endpoints
+
+Android delta attachments and their upload protocol are described in
+[DELTA_UPDATES.md](DELTA_UPDATES.md). Latest-release responses include an optional
+HTTPS `delta_manifest_url` (empty when unavailable), `size_bytes` and `sha256`;
+the existing full `download_url` remains compatible.
 
 ### Product Page
 
@@ -239,7 +262,7 @@ Content-Type: multipart/form-data
 X-Auth-Token: <admin_token>
 ```
 
-Replaces the installer payload of an existing release while keeping the release ID and download URL unchanged. Can be sent from the configured upload domain.
+Replaces the installer payload of an existing release while keeping the release ID and download URL unchanged. The browser admin sends this request to the admin origin; the configured upload domain is used only for binary upload endpoints such as `/upload` and `/smart-upload`.
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -293,6 +316,11 @@ SMTP host, port, encryption mode, sender, and recipient must be valid.
 The settings payload also accepts `admin_path`, a single safe URL segment made
 of letters, numbers, hyphens, or underscores. It is persisted in SQLite and
 takes effect immediately after the update.
+
+For upload CORS, `upload_allowed_origins` is an array of absolute `http` or
+`https` origins. The configured primary domain and `upload_domain` are allowed
+automatically; this list adds other explicitly trusted browser origins. Paths,
+wildcards, and other URL components are rejected.
 
 `POST /<admin_path>/api/settings/email/test` accepts the current SMTP form values and
 sends a plain-text test message without persisting them. An empty password

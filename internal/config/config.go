@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"unicode/utf8"
@@ -26,6 +27,7 @@ type Config struct {
 	Auth struct {
 		UploadTokens  []string `json:"upload_tokens"`
 		AdminTokens   []string `json:"admin_tokens"`
+		SetupToken    string   `json:"setup_token"`
 		AdminUsername string   `json:"admin_username"`
 		AdminPassword string   `json:"admin_password"`
 	} `json:"auth"`
@@ -87,6 +89,9 @@ func applyEnv(c *Config) {
 	if v := os.Getenv("FENFA_UPLOAD_TOKEN"); v != "" {
 		c.Auth.UploadTokens = []string{v}
 	}
+	if v := os.Getenv("FENFA_SETUP_TOKEN"); v != "" {
+		c.Auth.SetupToken = v
+	}
 	if v := os.Getenv("FENFA_ADMIN_USERNAME"); v != "" {
 		c.Auth.AdminUsername = v
 	}
@@ -107,6 +112,39 @@ func splitCSV(value string) []string {
 		}
 	}
 	return values
+}
+
+// NormalizeOrigin returns the scheme and authority portion of an HTTP origin.
+// Paths, credentials, queries, fragments, and wildcard origins are rejected so
+// callers can safely use the result as an allowlist key.
+func NormalizeOrigin(value string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(value))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil {
+		return "", fmt.Errorf("origin must be an absolute http or https URL")
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return "", fmt.Errorf("origin must use http or https")
+	}
+	if (parsed.Path != "" && parsed.Path != "/") || parsed.RawPath != "" || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Opaque != "" {
+		return "", fmt.Errorf("origin must not include a path or other URL components")
+	}
+	hostname := strings.ToLower(parsed.Hostname())
+	if hostname == "" {
+		return "", fmt.Errorf("origin host is required")
+	}
+	host := hostname
+	if strings.Contains(hostname, ":") {
+		host = "[" + hostname + "]"
+	}
+	port := parsed.Port()
+	if (scheme == "http" && port == "80") || (scheme == "https" && port == "443") {
+		port = ""
+	}
+	if port != "" {
+		host += ":" + port
+	}
+	return scheme + "://" + host, nil
 }
 
 // GetTrustedProxies returns the configured proxy networks. An empty result

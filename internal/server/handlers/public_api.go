@@ -49,6 +49,11 @@ func PublicLatestRelease(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 		actions := releaseActions(productPathKey(product), variant.Platform, domains, release.ID)
 		downloadURL, _ := actions["download"].(string)
 		releasePage, _ := actions["release_page"].(string)
+		deltaURL := deltaManifestURL(release, domains.Primary)
+		if m, ok := activeDelta(release); !ok || m.PackageName != variant.Identifier || m.ABI != variant.Arch {
+			deltaURL = ""
+		}
+		c.Header("Cache-Control", "no-cache")
 
 		c.JSON(http.StatusOK, gin.H{"ok": true, "data": gin.H{
 			"product": gin.H{
@@ -69,17 +74,20 @@ func PublicLatestRelease(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 				"published":      variant.Published,
 			},
 			"release": gin.H{
-				"id":           release.ID,
-				"version":      release.Version,
-				"build":        release.Build,
-				"changelog":    release.Changelog,
-				"force_update": release.ForceUpdate,
-				"created_at":   release.CreatedAt,
-				"min_os":       release.MinOS,
-				"channel":      release.Channel,
-				"download_url": downloadURL,
-				"release_page": releasePage,
-				"actions":      actions,
+				"id":                 release.ID,
+				"version":            release.Version,
+				"build":              release.Build,
+				"changelog":          release.Changelog,
+				"force_update":       release.ForceUpdate,
+				"created_at":         release.CreatedAt,
+				"min_os":             release.MinOS,
+				"channel":            release.Channel,
+				"download_url":       downloadURL,
+				"delta_manifest_url": deltaURL,
+				"size_bytes":         release.SizeBytes,
+				"sha256":             release.SHA256,
+				"release_page":       releasePage,
+				"actions":            actions,
 			},
 		}})
 	}

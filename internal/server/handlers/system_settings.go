@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -19,6 +20,34 @@ import (
 // trimDomainURL removes trailing slashes from a domain URL.
 func trimDomainURL(u string) string {
 	return strings.TrimRight(strings.TrimSpace(u), "/")
+}
+
+func decodeUploadAllowedOrigins(raw string) []string {
+	var origins []string
+	if strings.TrimSpace(raw) == "" || json.Unmarshal([]byte(raw), &origins) != nil {
+		return []string{}
+	}
+	return origins
+}
+
+func normalizeUploadAllowedOrigins(origins []string) ([]string, error) {
+	normalized := make([]string, 0, len(origins))
+	seen := make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		if strings.TrimSpace(origin) == "" {
+			continue
+		}
+		value, err := config.NormalizeOrigin(origin)
+		if err != nil {
+			return nil, fmt.Errorf("upload_allowed_origins contains an invalid origin: %q", origin)
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	return normalized, nil
 }
 
 // SystemSettingsResponse represents the API response for system settings
@@ -41,8 +70,9 @@ type SystemSettingsResponse struct {
 	SMTPTo          string `json:"smtp_to,omitempty"`
 
 	// Storage configuration
-	StorageType  string `json:"storage_type"`
-	UploadDomain string `json:"upload_domain,omitempty"`
+	StorageType          string   `json:"storage_type"`
+	UploadDomain         string   `json:"upload_domain,omitempty"`
+	UploadAllowedOrigins []string `json:"upload_allowed_origins"`
 
 	// S3/R2 configuration (no secrets)
 	S3Configured bool   `json:"s3_configured"`
@@ -64,8 +94,9 @@ type SystemSettingsUpdateRequest struct {
 	AdminPath        *string  `json:"admin_path,omitempty"`
 
 	// Storage configuration (optional)
-	StorageType  *string `json:"storage_type,omitempty"`
-	UploadDomain *string `json:"upload_domain,omitempty"`
+	StorageType          *string   `json:"storage_type,omitempty"`
+	UploadDomain         *string   `json:"upload_domain,omitempty"`
+	UploadAllowedOrigins *[]string `json:"upload_allowed_origins,omitempty"`
 
 	// S3/R2 configuration (optional)
 	S3Endpoint  *string `json:"s3_endpoint,omitempty"`
@@ -187,6 +218,18 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			v := trimDomainURL(*req.UploadDomain)
 			req.UploadDomain = &v
 		}
+		var uploadAllowedOrigins []string
+		if settingsErr == nil {
+			uploadAllowedOrigins = decodeUploadAllowedOrigins(settings.UploadAllowedOrigins)
+		}
+		if req.UploadAllowedOrigins != nil {
+			normalized, err := normalizeUploadAllowedOrigins(*req.UploadAllowedOrigins)
+			if err != nil {
+				writeSettingsValidationError(c, err)
+				return
+			}
+			uploadAllowedOrigins = normalized
+		}
 		if req.S3PublicURL != nil {
 			v := trimDomainURL(*req.S3PublicURL)
 			req.S3PublicURL = &v
@@ -228,18 +271,19 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 		if err == gorm.ErrRecordNotFound {
 			// Create new settings
 			settings = store.SystemSettings{
-				ID:               "default",
-				PrimaryDomain:    req.PrimaryDomain,
-				SecondaryDomains: secondaryDomainsJSON,
-				Organization:     req.Organization,
-				AdminPath:        adminPath,
-				SMTPPort:         fenfaemail.DefaultSMTPPort,
-				SMTPEncryption:   fenfaemail.EncryptionStartTLS,
-				UpdatedAt:        time.Now(),
-				AppleKeyID:       req.AppleKeyID,
-				AppleIssuerID:    req.AppleIssuerID,
-				ApplePrivateKey:  req.ApplePrivateKey,
-				AppleTeamID:      req.AppleTeamID,
+				ID:                   "default",
+				PrimaryDomain:        req.PrimaryDomain,
+				SecondaryDomains:     secondaryDomainsJSON,
+				UploadAllowedOrigins: mustMarshalStringList(uploadAllowedOrigins),
+				Organization:         req.Organization,
+				AdminPath:            adminPath,
+				SMTPPort:             fenfaemail.DefaultSMTPPort,
+				SMTPEncryption:       fenfaemail.EncryptionStartTLS,
+				UpdatedAt:            time.Now(),
+				AppleKeyID:           req.AppleKeyID,
+				AppleIssuerID:        req.AppleIssuerID,
+				ApplePrivateKey:      req.ApplePrivateKey,
+				AppleTeamID:          req.AppleTeamID,
 			}
 			if req.StorageType != nil {
 				settings.StorageType = *req.StorageType
@@ -307,6 +351,9 @@ func UpdateSystemSettings(db *gorm.DB) gin.HandlerFunc {
 			}
 			if req.UploadDomain != nil {
 				updates["upload_domain"] = *req.UploadDomain
+			}
+			if req.UploadAllowedOrigins != nil {
+				updates["upload_allowed_origins"] = mustMarshalStringList(uploadAllowedOrigins)
 			}
 			if req.S3Endpoint != nil {
 				updates["s3_endpoint"] = *req.S3Endpoint
@@ -381,30 +428,39 @@ func systemSettingsResponse(settings store.SystemSettings, secondaryDomains []st
 	}
 	smtpConfig := fenfaemail.SMTPConfigFromSettings(settings)
 	return SystemSettingsResponse{
-		PrimaryDomain:    settings.PrimaryDomain,
-		SecondaryDomains: secondaryDomains,
-		Organization:     settings.Organization,
-		AdminPath:        adminPath,
-		UpdatedAt:        settings.UpdatedAt.Format(time.RFC3339),
-		EmailEnabled:     settings.EmailEnabled,
-		EmailConfigured:  fenfaemail.ValidateSMTPConfig(smtpConfig) == nil,
-		SMTPHost:         smtpConfig.Host,
-		SMTPPort:         smtpConfig.Port,
-		SMTPEncryption:   smtpConfig.Encryption,
-		SMTPUsername:     smtpConfig.Username,
-		SMTPPasswordSet:  settings.SMTPPassword != "",
-		SMTPFrom:         smtpConfig.From,
-		SMTPTo:           smtpConfig.To,
-		StorageType:      storageType,
-		UploadDomain:     settings.UploadDomain,
-		S3Configured:     settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != "",
-		S3Endpoint:       settings.S3Endpoint,
-		S3Bucket:         settings.S3Bucket,
-		S3PublicURL:      settings.S3PublicURL,
-		AppleConfigured:  settings.AppleKeyID != "" && settings.AppleIssuerID != "" && settings.ApplePrivateKey != "",
-		AppleKeyID:       settings.AppleKeyID,
-		AppleTeamID:      settings.AppleTeamID,
+		PrimaryDomain:        settings.PrimaryDomain,
+		SecondaryDomains:     secondaryDomains,
+		Organization:         settings.Organization,
+		AdminPath:            adminPath,
+		UpdatedAt:            settings.UpdatedAt.Format(time.RFC3339),
+		EmailEnabled:         settings.EmailEnabled,
+		EmailConfigured:      fenfaemail.ValidateSMTPConfig(smtpConfig) == nil,
+		SMTPHost:             smtpConfig.Host,
+		SMTPPort:             smtpConfig.Port,
+		SMTPEncryption:       smtpConfig.Encryption,
+		SMTPUsername:         smtpConfig.Username,
+		SMTPPasswordSet:      settings.SMTPPassword != "",
+		SMTPFrom:             smtpConfig.From,
+		SMTPTo:               smtpConfig.To,
+		StorageType:          storageType,
+		UploadDomain:         settings.UploadDomain,
+		UploadAllowedOrigins: decodeUploadAllowedOrigins(settings.UploadAllowedOrigins),
+		S3Configured:         settings.S3Endpoint != "" && settings.S3Bucket != "" && settings.S3AccessKey != "" && settings.S3SecretKey != "",
+		S3Endpoint:           settings.S3Endpoint,
+		S3Bucket:             settings.S3Bucket,
+		S3PublicURL:          settings.S3PublicURL,
+		AppleConfigured:      settings.AppleKeyID != "" && settings.AppleIssuerID != "" && settings.ApplePrivateKey != "",
+		AppleKeyID:           settings.AppleKeyID,
+		AppleTeamID:          settings.AppleTeamID,
 	}
+}
+
+func mustMarshalStringList(values []string) string {
+	b, err := json.Marshal(values)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
 }
 
 func applyEmailSettings(settings *store.SystemSettings, req *SystemSettingsUpdateRequest) {

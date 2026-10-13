@@ -4,8 +4,8 @@ FROM node:20-alpine AS node-builder
 WORKDIR /src
 COPY . .
 # Build front and admin (vite)
-RUN cd web/front && npm install && npm run build
-RUN cd web/admin && npm install && npm run build
+RUN cd web/front && npm ci && npm run build
+RUN cd web/admin && npm ci && npm run build
 
 # Go build (needs CGO + sqlite headers)
 FROM golang:1.25-alpine AS go-builder

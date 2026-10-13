@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -53,6 +55,8 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 
 	g.GET("/ios/:releaseID/manifest.plist", handlers.IOSManifest(db, cfg))
 	g.GET("/d/:releaseID", handlers.Download(db))
+	g.GET("/delta/:releaseID/:targetHash/:manifestHash/manifest.json", handlers.PublicDeltaManifest(db))
+	g.GET("/delta/:releaseID/:targetHash/:manifestHash/:patchHash", handlers.PublicDeltaPatch(db))
 
 	// Public visit counting (client-side)
 	g.POST("/events", handlers.PostEvent(db))
@@ -65,11 +69,14 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 	// Upload (auth required, with CORS for cross-domain uploads)
 	upload := g.Group("/")
 	upload.Use(func(c *gin.Context) {
-		// Allow cross-origin uploads when upload_domain is configured
 		origin := c.GetHeader("Origin")
 		if origin != "" {
+			if !allowedUploadOrigin(db, cfg, origin) {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"ok": false, "error": gin.H{"code": "FORBIDDEN_ORIGIN", "message": "upload origin is not allowed"}})
+				return
+			}
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Vary", "Origin")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Auth-Token")
 			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		}
@@ -83,14 +90,16 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 	upload.POST("/upload", middleware.RequireUpload(db, cfg), handlers.Upload(db, cfg))
 	upload.OPTIONS("/smart-upload", func(c *gin.Context) { c.Status(204) })
 	upload.POST("/smart-upload", middleware.RequireUpload(db, cfg), handlers.SmartUpload(db, cfg))
+	upload.OPTIONS("/releases/:releaseID/delta", func(c *gin.Context) { c.Status(204) })
+	upload.POST("/releases/:releaseID/delta", middleware.RequireUpload(db, cfg), handlers.UploadDelta(db))
 
 	// Admin APIs use a dynamic path segment so the configured suffix can be
 	// changed from the settings page without restarting the process.
 	admin := g.Group("/:adminPath")
 	admin.Use(middleware.RequireAdminPath(db))
 	admin.POST("/api/auth/login", handlers.AdminLogin(db))
-	admin.GET("/api/auth/status", handlers.AdminAuthStatus(db))
-	admin.POST("/api/auth/setup", handlers.AdminSetup(db))
+	admin.GET("/api/auth/status", handlers.AdminAuthStatus(db, cfg))
+	admin.POST("/api/auth/setup", handlers.AdminSetup(db, cfg))
 	admin.POST("/api/auth/logout", handlers.AdminLogout(db))
 	admin.OPTIONS("/api/parse-app", func(c *gin.Context) { c.Status(204) })
 	admin.OPTIONS("/api/releases/:releaseID/replace-file", func(c *gin.Context) { c.Status(204) })
@@ -99,6 +108,8 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 	admin.PUT("/api/auth/account", handlers.AdminUpdateAccount(db))
 	admin.POST("/api/parse-app", handlers.ParseAppInfo())
 	admin.POST("/api/releases/:releaseID/replace-file", handlers.AdminReplaceReleaseFile(db, cfg))
+	admin.POST("/api/releases/:releaseID/delta", handlers.UploadDelta(db))
+	admin.DELETE("/api/releases/:releaseID/delta", handlers.DeleteDelta(db))
 	// JSON
 	admin.GET("/api/ios_devices", handlers.AdminListIOSDevices(db))
 	admin.GET("/api/ios_variants", handlers.AdminListIOSVariants(db))
@@ -180,4 +191,37 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 	})
 
 	return nil
+}
+
+func allowedUploadOrigin(db *gorm.DB, cfg *config.Config, origin string) bool {
+	normalizedOrigin, err := config.NormalizeOrigin(origin)
+	if err != nil {
+		return false
+	}
+
+	var settings store.SystemSettings
+	if err := db.Where("id = ?", "default").First(&settings).Error; err != nil {
+		return false
+	}
+	allowed := map[string]struct{}{}
+	add := func(raw string) {
+		if normalized, normalizeErr := config.NormalizeOrigin(raw); normalizeErr == nil {
+			allowed[normalized] = struct{}{}
+		}
+	}
+	if cfg != nil {
+		add(cfg.GetPrimaryDomain())
+	}
+	add(settings.PrimaryDomain)
+	add(settings.UploadDomain)
+	var configured []string
+	if strings.TrimSpace(settings.UploadAllowedOrigins) != "" {
+		if err := json.Unmarshal([]byte(settings.UploadAllowedOrigins), &configured); err == nil {
+			for _, configuredOrigin := range configured {
+				add(configuredOrigin)
+			}
+		}
+	}
+	_, ok := allowed[normalizedOrigin]
+	return ok
 }

@@ -40,6 +40,18 @@
         </div>
 
         <div v-if="setupRequired" class="form-group">
+          <label class="label" for="admin-setup-token">{{ t.login.setupTokenLabel }}</label>
+          <input
+            id="admin-setup-token"
+            v-model="setupToken"
+            type="password"
+            :placeholder="t.login.setupTokenPlaceholder"
+            autocomplete="off"
+            class="input"
+          >
+        </div>
+
+        <div v-if="setupRequired" class="form-group">
           <label class="label" for="admin-password-confirm">{{ t.login.confirmPasswordLabel }}</label>
           <input
             id="admin-password-confirm"
@@ -81,6 +93,7 @@ const { handleLogin: markLoggedIn } = useAuth()
 const username = ref('')
 const password = ref('')
 const passwordConfirmation = ref('')
+const setupToken = ref('')
 const setupRequired = ref(false)
 const checkingStatus = ref(true)
 const isLoggingIn = ref(false)
@@ -111,6 +124,10 @@ async function handleLogin() {
     errorMessage.value = t.value.login.passwordsDoNotMatch
     return
   }
+  if (setupRequired.value && !setupToken.value) {
+    errorMessage.value = t.value.login.setupTokenRequired
+    return
+  }
 
   isLoggingIn.value = true
   try {
@@ -120,6 +137,7 @@ async function handleLogin() {
       body: JSON.stringify({
         username: username.value,
         password: password.value,
+        ...(setupRequired.value ? { setup_token: setupToken.value } : {}),
         ...(setupRequired.value ? { password_confirmation: passwordConfirmation.value } : {})
       })
     })

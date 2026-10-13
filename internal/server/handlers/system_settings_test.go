@@ -171,3 +171,38 @@ func TestTestEmailSettingsReturnsBadGatewayOnSenderFailure(t *testing.T) {
 		t.Fatalf("expected SMTP failure response, got %d body=%v", rr.Code, payload)
 	}
 }
+
+func TestSystemSettingsUploadAllowedOriginsRoundTrip(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := openAdminProductsTestDB(t)
+	body := map[string]any{
+		"primary_domain":         "https://download.example.com",
+		"secondary_domains":      []string{},
+		"organization":           "Fenfa",
+		"admin_path":             "admin",
+		"upload_allowed_origins": []string{"HTTPS://Admin.Example.com/", "https://admin.example.com"},
+	}
+	rr, payload := performSettingsJSONRequest(t, UpdateSystemSettings(db), http.MethodPut, body)
+	if rr.Code != http.StatusOK || payload["ok"] != true {
+		t.Fatalf("expected upload origin settings update success, got %d body=%v", rr.Code, payload)
+	}
+	data := payload["data"].(map[string]any)
+	origins, ok := data["upload_allowed_origins"].([]any)
+	if !ok || len(origins) != 1 || origins[0] != "https://admin.example.com" {
+		t.Fatalf("expected normalized unique upload origins, got %v", data["upload_allowed_origins"])
+	}
+
+	var settings store.SystemSettings
+	if err := db.Where("id = ?", "default").First(&settings).Error; err != nil {
+		t.Fatalf("load settings: %v", err)
+	}
+	if settings.UploadAllowedOrigins != `["https://admin.example.com"]` {
+		t.Fatalf("unexpected stored upload origins: %q", settings.UploadAllowedOrigins)
+	}
+
+	body["upload_allowed_origins"] = []string{"https://admin.example.com/path"}
+	bad, _ := performSettingsJSONRequest(t, UpdateSystemSettings(db), http.MethodPut, body)
+	if bad.Code != http.StatusBadRequest {
+		t.Fatalf("expected invalid upload origin to return 400, got %d body=%s", bad.Code, bad.Body.String())
+	}
+}

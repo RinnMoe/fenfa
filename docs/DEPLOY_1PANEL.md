@@ -1,4 +1,6 @@
-﻿# 1Panel Deployment Guide
+# 1Panel Deployment Guide
+
+> This sample targets `v0.5.0`, with account/password login and Android delta attachments. Before upgrading, back up the SQLite database, deployment configuration and current image digest. Legacy admin tokens remain API-only; initialize an admin account or configure the protected setup flow.
 
 ## Prerequisites
 
@@ -9,7 +11,9 @@
 ## 1. Generate Production Credentials
 
 ```bash
-openssl rand -base64 24 # FENFA_ADMIN_PASSWORD
+openssl rand -hex 32   # FENFA_ADMIN_TOKEN only if legacy API clients require it
+openssl rand -base64 24 # FENFA_ADMIN_PASSWORD for v0.5.0
+openssl rand -hex 32   # FENFA_SETUP_TOKEN when bootstrap credentials are omitted
 openssl rand -hex 32   # FENFA_UPLOAD_TOKEN
 ```
 
@@ -23,7 +27,7 @@ cp deploy/1panel/docker-compose.yml.example /opt/fenfa/docker-compose.yml
 cp deploy/1panel/.env.example /opt/fenfa/.env
 ```
 
-Edit /opt/fenfa/.env with the administrator username/password, upload token, and domain. If Fenfa will run behind a reverse proxy, also set `FENFA_TRUSTED_PROXIES` to the proxy's actual IP/CIDR.
+The sample defaults to `ghcr.io/rinnmoe/fenfa:v0.5.0`. Set `FENFA_ADMIN_USERNAME`/`FENFA_ADMIN_PASSWORD`, or configure `FENFA_SETUP_TOKEN` for first-run setup. Preserve existing upload/API tokens and storage settings during upgrades. Set the upload token and HTTPS domain. Set `FENFA_TRUSTED_PROXIES` to the proxy actual IP/CIDR.
 
 In 1Panel: create a new Compose project pointing to /opt/fenfa/docker-compose.yml.
 
@@ -45,7 +49,7 @@ If you use the feedback rate limiter or other client-IP-derived behavior, set `F
 After the container is running:
 
 1. Visit https://release.yourdomain.com/admin
-2. Login with `FENFA_ADMIN_USERNAME` and `FENFA_ADMIN_PASSWORD`
+2. Sign in with the initialized administrator username and password
 3. Go to Settings > Storage
 4. Set Storage Mode to S3
 5. Fill in R2 endpoint (https://ACCOUNT_ID.r2.cloudflarestorage.com), bucket, access key, secret key, and public URL

@@ -1,16 +1,19 @@
-﻿# Known Issues
+# Known Issues
 
 ## Inherited Frontend Dependencies (Resolved)
 
-The upstream Fenfa frontend dependencies (web/front, web/admin) previously had 3 high severity npm audit findings:
+The upstream Fenfa frontend dependencies (web/front, web/admin) previously had 4 high severity npm audit findings:
 
 - vite 8.0.0 (GHSA-fx2h-pf6j-xcff and related): path traversal in dev server
 - postcss <=8.5.22 (GHSA-r28c-9q8g-f849 and related): source map file disclosure
 - picomatch 4.0.0-4.0.3 (GHSA-c2c7-rcm5-vvqj): ReDoS via extglob quantifiers
+- nanoid <3.3.18: predictable IDs in affected transitive tooling paths
 
-All three were build-time only (devDependencies of vite). No runtime browser dependencies were affected.
+These are transitive dependencies and are not imported directly by Fenfa application code.
 
-**Resolution**: Applied `npm audit fix` (non-breaking minor/patch updates) in both web/front and web/admin. Vite upgraded 8.0.0 to 8.2.1, postcss and picomatch updated accordingly. Both frontend builds pass. `npm audit` now reports 0 vulnerabilities.
+**Resolution**: Applied `npm audit fix` (non-breaking minor/patch updates) in both web/front and web/admin. Vite upgraded 8.0.0 to 8.2.1, postcss and picomatch updated accordingly, and nanoid is now 3.3.18. Both frontend builds pass. `npm audit` now reports 0 vulnerabilities.
+
+The v0.5.0 release also updates Vue and source-map-js within existing constraints to address GHSA-g2v6-rqmx-r4w6 and GHSA-68fv-2mgg-jv7q. Both frontend audits report zero vulnerabilities on 2026-10-13.
 
 ## S3 Endpoint Configuration
 

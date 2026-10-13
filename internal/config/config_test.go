@@ -26,6 +26,36 @@ func TestTrustedProxiesLoadFromEnvironment(t *testing.T) {
 	}
 }
 
+func TestSetupTokenLoadsFromEnvironment(t *testing.T) {
+	t.Setenv("FENFA_SETUP_TOKEN", "bootstrap-secret")
+	c := Default()
+	applyEnv(c)
+	if c.Auth.SetupToken != "bootstrap-secret" {
+		t.Fatalf("expected setup token from environment, got %q", c.Auth.SetupToken)
+	}
+}
+
+func TestNormalizeOrigin(t *testing.T) {
+	for _, test := range []struct {
+		input string
+		want  string
+	}{
+		{input: "HTTPS://Example.COM/", want: "https://example.com"},
+		{input: "https://example.com:443", want: "https://example.com"},
+		{input: "http://example.com:8080", want: "http://example.com:8080"},
+	} {
+		got, err := NormalizeOrigin(test.input)
+		if err != nil || got != test.want {
+			t.Fatalf("NormalizeOrigin(%q) = %q, %v; want %q", test.input, got, err, test.want)
+		}
+	}
+	for _, input := range []string{"", "https://example.com/path", "https://user@example.com", "ftp://example.com", "*"} {
+		if _, err := NormalizeOrigin(input); err == nil {
+			t.Fatalf("expected NormalizeOrigin(%q) to reject input", input)
+		}
+	}
+}
+
 func TestAdminPathIsNotOverriddenByEnvironment(t *testing.T) {
 	t.Setenv("FENFA_ADMIN_PATH", "from-env")
 	c := Default()

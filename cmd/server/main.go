@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
@@ -47,6 +48,9 @@ func main() {
 	}
 	if err := fenfauth.EnsureBootstrapAdmin(db, cfg.Auth.AdminUsername, cfg.Auth.AdminPassword); err != nil {
 		log.Fatalf("initialize admin account failed: %v", err)
+	}
+	if cfg.Auth.AdminUsername == "" && cfg.Auth.AdminPassword == "" && strings.TrimSpace(cfg.Auth.SetupToken) == "" {
+		log.Printf("admin first-run setup is disabled; configure bootstrap credentials or FENFA_SETUP_TOKEN")
 	}
 
 	// Gin engine

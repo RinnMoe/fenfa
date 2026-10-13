@@ -35,8 +35,10 @@ RinnMoe Fenfa 是基于 [openprx/fenfa](https://github.com/openprx/fenfa) 独立
 
 ### Docker
 
+`v0.5.0` 包含账号密码登录、安全加固与 Android 差分附件支持。从 `v0.4.0` 升级前，请备份 SQLite 数据库和部署配置。
+
 ```bash
-docker pull ghcr.io/rinnmoe/fenfa:v0.4.0
+docker pull ghcr.io/rinnmoe/fenfa:v0.5.0
 docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_ADMIN_USERNAME=admin \
   -e FENFA_ADMIN_PASSWORD=请替换为强密码 \
@@ -44,7 +46,7 @@ docker run -d --name fenfa -p 127.0.0.1:8000:8000 \
   -e FENFA_PRIMARY_DOMAIN=https://dist.example.com \
   -v ./data:/data \
   -v ./uploads:/app/uploads \
-  ghcr.io/rinnmoe/fenfa:v0.4.0
+  ghcr.io/rinnmoe/fenfa:v0.5.0
 ```
 
 访问 `http://localhost:8000/admin`。
@@ -81,10 +83,11 @@ go build -o fenfa ./cmd/server
 | `FENFA_TRUSTED_PROXIES` | 允许提供客户端 IP 请求头的代理 IP/CIDR，逗号分隔；留空表示禁用转发 IP 请求头 |
 | `FENFA_ADMIN_USERNAME` | 首次启动时初始化的管理员账号（可选） |
 | `FENFA_ADMIN_PASSWORD` | 首次启动时初始化的管理员密码（至少 8 位，可选） |
+| `FENFA_SETUP_TOKEN` | 未配置初始化账号密码时，首次 setup 接口所需的令牌 |
 | `FENFA_ADMIN_TOKEN` | 旧版管理员 Token，仅用于兼容旧 API 客户端，不再用于后台登录 |
 | `FENFA_UPLOAD_TOKEN` | 上传 Token |
 
-后台登录现在使用账号密码和 HttpOnly 会话 Cookie。若不设置初始化账号密码，首次打开 `/admin` 时会显示管理员创建表单。后台地址后缀在「系统设置 > 基本设置」中修改，保存后使用新地址访问；`FENFA_ADMIN_PATH` 不再作为运行时配置。
+后台登录现在使用账号密码和 HttpOnly 会话 Cookie。若不设置初始化账号密码，只有配置 `FENFA_SETUP_TOKEN` 时才启用首次 setup；否则 setup 接口和创建表单均不可用。`/upload` 和 `/smart-upload` 仅接受 upload-scoped 的 `X-Auth-Token`，不接受管理员会话 Cookie。可在后台「系统设置 > 存储」配置浏览器上传来源白名单，主域名和上传域名会自动允许。后台地址后缀在「系统设置 > 基本设置」中修改，保存后使用新地址访问；`FENFA_ADMIN_PATH` 不再作为运行时配置。
 
 如果部署在 Nginx 或其他反向代理之后，请将 `FENFA_TRUSTED_PROXIES` 设置为代理的实际 IP 或网段，不要使用 `0.0.0.0/0` 或 `::/0`。
 

@@ -1,6 +1,6 @@
 services:
   fenfa:
-    image: ghcr.io/rinnmoe/fenfa:v0.4.0
+    image: ${FENFA_IMAGE:-ghcr.io/rinnmoe/fenfa:v0.5.0}
     container_name: fenfa
     restart: unless-stopped
     ports:
@@ -8,6 +8,7 @@ services:
     environment:
       FENFA_ADMIN_USERNAME: ${FENFA_ADMIN_USERNAME}
       FENFA_ADMIN_PASSWORD: ${FENFA_ADMIN_PASSWORD}
+      FENFA_SETUP_TOKEN: ${FENFA_SETUP_TOKEN:-}
       FENFA_ADMIN_TOKEN: ${FENFA_ADMIN_TOKEN}
       FENFA_UPLOAD_TOKEN: ${FENFA_UPLOAD_TOKEN}
       FENFA_PRIMARY_DOMAIN: ${FENFA_PRIMARY_DOMAIN}

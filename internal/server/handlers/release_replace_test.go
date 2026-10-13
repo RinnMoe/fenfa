@@ -108,14 +108,15 @@ func TestReplaceReleaseFileLocal(t *testing.T) {
 		t.Fatalf("write old file: %v", err)
 	}
 	release := store.Release{
-		ID:          "rel_replace_local",
-		VariantID:   variant.ID,
-		Version:     "1.0.0",
-		Build:       1,
-		StoragePath: oldPath,
-		FileName:    "old.exe",
-		FileExt:     ".exe",
-		CreatedAt:   time.Now(),
+		ID:            "rel_replace_local",
+		DeltaManifest: "previous manifest",
+		VariantID:     variant.ID,
+		Version:       "1.0.0",
+		Build:         1,
+		StoragePath:   oldPath,
+		FileName:      "old.exe",
+		FileExt:       ".exe",
+		CreatedAt:     time.Now(),
 	}
 	if err := db.Create(&release).Error; err != nil {
 		t.Fatalf("create release: %v", err)
@@ -151,6 +152,9 @@ func TestReplaceReleaseFileLocal(t *testing.T) {
 	}
 	if loaded.StoragePath == oldPath {
 		t.Fatalf("storage path was not replaced")
+	}
+	if loaded.DeltaManifest != "" {
+		t.Fatal("replacement retained stale delta manifest")
 	}
 	if _, err := os.Stat(loaded.StoragePath); err != nil {
 		t.Fatalf("new file missing: %v", err)
