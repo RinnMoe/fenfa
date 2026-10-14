@@ -574,3 +574,21 @@ func TestConcurrentAdminSetupCreatesSingleAdmin(t *testing.T) {
 		t.Fatalf("expected exactly one admin after concurrent setup, got %d", count)
 	}
 }
+
+func TestLinkedReleaseRouteRequiresAdmin(t *testing.T) {
+	engine, _, _ := newTestRouter(t)
+	for _, token := range []string{"", "upload-token", "admin-token"} {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest("POST", "/admin/api/variants/var_router/releases/link", strings.NewReader(`{"version":"2.0","external_url":"https://cdn.example.com/app.exe"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Auth-Token", token)
+		engine.ServeHTTP(rr, req)
+		if token == "admin-token" {
+			if rr.Code != 201 {
+				t.Fatalf("admin create: %d %s", rr.Code, rr.Body)
+			}
+		} else if rr.Code != 401 && rr.Code != 403 {
+			t.Fatalf("non-admin create: %q %d", token, rr.Code)
+		}
+	}
+}

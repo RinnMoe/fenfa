@@ -47,6 +47,7 @@ type App struct {
 
 // Release represents a single uploaded build
 type Release struct {
+	ExternalURL   string    `gorm:"type:text" json:"external_url,omitempty"`
 	DeltaManifest string    `gorm:"type:text" json:"-"`
 	ID            string    `gorm:"primaryKey;size:64" json:"id"`
 	AppID         string    `gorm:"index;size:64" json:"app_id"` // Legacy field kept for compatibility.

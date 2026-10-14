@@ -199,6 +199,7 @@ func AdminReplaceReleaseFile(db *gorm.DB, cfg *config.Config) gin.HandlerFunc {
 			"sha256":         sha,
 			"storage_path":   newStoragePath,
 			"delta_manifest": "",
+			"external_url":   "",
 		}
 
 		txErr := db.Transaction(func(tx *gorm.DB) error {

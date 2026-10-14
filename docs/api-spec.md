@@ -343,3 +343,34 @@ Each release also has a `meta.json` snapshot (local storage only).
 ## ID Format
 
 IDs use prefix + random hex: `app_7f3xn`, `rel_b1cqa`, `prd_abc123`, `var_def456`.
+
+
+## External installer links
+
+Administrators can use `POST /<adminPath>/api/variants/:variantID/releases/link`
+with JSON instead of uploading a file:
+
+```json
+{"external_url":"https://cdn.example.com/app.apk","version":"1.1.0","build":2013,"channel":"internal","file_name":"app.apk","size_bytes":85857484}
+```
+
+`external_url` and `version` are required. Links must be absolute HTTPS URLs
+without embedded credentials or fragments. Signed query parameters are supported,
+but their expiry remains the publisher's responsibility. Optional `file_name`,
+`size_bytes` and `sha256` describe the remote installer and are publisher supplied;
+Fenfa does not fetch the file or verify its availability, size, hash or signature.
+Other optional fields are `build`, `channel`, `min_os`, `changelog`, `force_update`.
+Filename extensions must match the variant platform; URLs without a package
+filename get a platform-specific default filename.
+
+Public downloads keep `/d/:releaseID`, check publication state, count the request
+and return a non-cacheable HTTP 302 redirect. Counts represent redirect requests,
+not confirmed completed remote downloads. Admin downloads redirect without
+incrementing the public counter. Existing uploaded releases remain compatible.
+
+`PUT /<adminPath>/api/releases/:releaseID` accepts `external_url` to change the
+download target. A changed URL invalidates the previous size, SHA256 and delta
+manifest; owned installer data is retained until normal replacement or deletion.
+Use the existing installer replacement action to switch back to an uploaded file.
+Linked releases cannot accept delta attachments. For iOS, the remote IPA must
+satisfy the existing installation requirements; metadata is entered manually.

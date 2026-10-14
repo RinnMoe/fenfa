@@ -109,6 +109,7 @@ func TestReplaceReleaseFileLocal(t *testing.T) {
 	}
 	release := store.Release{
 		ID:            "rel_replace_local",
+		ExternalURL:   "https://cdn.example.com/old.exe",
 		DeltaManifest: "previous manifest",
 		VariantID:     variant.ID,
 		Version:       "1.0.0",
@@ -149,6 +150,9 @@ func TestReplaceReleaseFileLocal(t *testing.T) {
 	var loaded store.Release
 	if err := db.Where("id = ?", release.ID).First(&loaded).Error; err != nil {
 		t.Fatalf("load release: %v", err)
+	}
+	if loaded.ExternalURL != "" {
+		t.Fatal("replacement retained external URL")
 	}
 	if loaded.StoragePath == oldPath {
 		t.Fatalf("storage path was not replaced")

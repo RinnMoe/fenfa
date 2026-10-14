@@ -212,6 +212,15 @@ export default {
   },
 
   uploadModal: {
+    source: 'Installer source',
+    fileSource: 'Upload installer',
+    linkSource: 'Direct installer URL',
+    linkRequired: 'HTTPS download URL *',
+    linkHelp: 'Use a public installer URL that requires no login. Enter version details manually. Filename, size in bytes and SHA256 are optional; Fenfa does not fetch or verify the remote file.',
+    linkFilename: 'Filename (optional)',
+    linkSize: 'File size in bytes (optional)',
+    createLink: 'Create linked release',
+    linkEditHelp: 'A URL overrides the current download target. Leave blank to retain file uploads. Changing the URL clears the old size, SHA256 and delta manifest. Linked releases require a URL; use Replace installer to switch to a hosted file.',
     title: 'Upload New Version',
     appName: 'App Name',
     platform: 'Platform',

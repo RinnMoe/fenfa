@@ -43,6 +43,17 @@ func Download(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// S3 storage: redirect to public URL
+		if rel.ExternalURL != "" {
+			if _, err := validateExternalURL(rel.ExternalURL); err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			c.Header("Cache-Control", "no-store")
+			_ = db.Model(&rel).UpdateColumn("download_count", gorm.Expr("download_count + 1")).Error
+			c.Redirect(http.StatusFound, rel.ExternalURL)
+			return
+		}
+
 		if strings.HasPrefix(rel.StoragePath, "s3://") {
 			var settings store.SystemSettings
 			db.Where("id = ?", "default").First(&settings)

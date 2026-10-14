@@ -33,6 +33,7 @@ type adminProductInput struct {
 }
 
 type adminReleaseInput struct {
+	ExternalURL *string `json:"external_url,omitempty"`
 	Version     *string `json:"version"`
 	Build       *int64  `json:"build"`
 	Channel     *string `json:"channel"`
@@ -624,6 +625,7 @@ func adminReleasePayload(release store.Release) gin.H {
 		"size_bytes":      release.SizeBytes,
 		"sha256":          release.SHA256,
 		"delta_available": deltaAvailable,
+		"external_url":    release.ExternalURL,
 	}
 }
 
@@ -635,7 +637,7 @@ func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "invalid release payload"}})
 			return
 		}
-		if input.Version == nil && input.Build == nil && input.Channel == nil && input.MinOS == nil && input.Changelog == nil && input.ForceUpdate == nil {
+		if input.Version == nil && input.Build == nil && input.Channel == nil && input.MinOS == nil && input.Changelog == nil && input.ForceUpdate == nil && input.ExternalURL == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error": gin.H{"code": "BAD_REQUEST", "message": "release payload is empty"}})
 			return
 		}
@@ -647,6 +649,19 @@ func AdminUpdateRelease(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		updates := map[string]any{}
+		if input.ExternalURL != nil {
+			link, err := validateExternalURL(*input.ExternalURL)
+			if err != nil {
+				releaseLinkError(c, 400, err.Error())
+				return
+			}
+			updates["external_url"] = link
+			if link != release.ExternalURL {
+				updates["delta_manifest"] = ""
+				updates["sha256"] = ""
+				updates["size_bytes"] = 0
+			}
+		}
 		if input.Version != nil {
 			version := strings.TrimSpace(*input.Version)
 			if version == "" {

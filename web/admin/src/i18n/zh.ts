@@ -212,6 +212,15 @@ export default {
   },
 
   uploadModal: {
+    source: '安装包来源',
+    fileSource: '上传安装包',
+    linkSource: '下载安装包直链',
+    linkRequired: 'HTTPS 下载直链 *',
+    linkHelp: '填写可公开访问且无需登录的安装包链接。版本信息需手动填写；文件名、大小（字节）和 SHA256 可选，Fenfa 不会自动下载或校验远程文件。',
+    linkFilename: '文件名（可选）',
+    linkSize: '文件大小（字节，可选）',
+    createLink: '创建直链版本',
+    linkEditHelp: '填写直链可替代当前下载目标；留空保留已有上传方式。修改链接会清除旧文件大小、SHA256 和差分清单。直链版本不能移除链接，可改填新链接或替换安装包。',
     title: '上传新版本',
     appName: '应用名称',
     platform: '平台',

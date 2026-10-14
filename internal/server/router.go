@@ -132,6 +132,7 @@ func RegisterRoutes(g *gin.Engine, db *gorm.DB, cfg *config.Config, notifiers ..
 	admin.DELETE("/api/announcements/:announcementID", handlers.AdminDeleteAnnouncement(db))
 	admin.PUT("/api/products/:productID", handlers.AdminUpdateProduct(db))
 	admin.POST("/api/products/:productID/variants", handlers.AdminCreateVariant(db))
+	admin.POST("/api/variants/:variantID/releases/link", handlers.AdminCreateLinkedRelease(db, cfg))
 	admin.GET("/api/variants/:variantID/stats", handlers.AdminGetVariantStats(db))
 	admin.PUT("/api/variants/:variantID", handlers.AdminUpdateVariant(db))
 	admin.DELETE("/api/products/:productID", handlers.AdminDeleteProduct(db))

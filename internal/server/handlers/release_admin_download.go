@@ -22,6 +22,15 @@ func AdminDownloadRelease(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if rel.ExternalURL != "" {
+			if _, err := validateExternalURL(rel.ExternalURL); err != nil {
+				c.Status(404)
+				return
+			}
+			c.Header("Cache-Control", "no-store")
+			c.Redirect(http.StatusFound, rel.ExternalURL)
+			return
+		}
 		if strings.HasPrefix(rel.StoragePath, "s3://") {
 			var settings store.SystemSettings
 			if err := db.Where("id = ?", "default").First(&settings).Error; err != nil {

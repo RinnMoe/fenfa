@@ -12,6 +12,11 @@
     </template>
 
     <div class="modal-body">
+      <div class="form-group">
+        <label class="label" for="edit-external-url">{{ t.uploadModal.linkSource }}</label>
+        <input id="edit-external-url" v-model="externalURL" type="url" placeholder="https://example.com/app.apk" class="input">
+        <p class="help-text">{{ t.uploadModal.linkEditHelp }}</p>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <label class="label">{{ t.editRelease.version }}</label>
@@ -75,6 +80,7 @@ const { t } = useI18n()
 const { token, handleAuthError } = useAuth()
 const toast = useToast()
 const saving = ref(false)
+const externalURL = ref('')
 
 const form = reactive({
   version: '',
@@ -85,10 +91,11 @@ const form = reactive({
   force_update: false
 })
 
-const canSave = computed(() => form.version.trim().length > 0)
+const canSave = computed(() => form.version.trim().length > 0 && (!props.release?.external_url || !!externalURL.value.trim()))
 
 watch(() => props.show, (show) => {
   if (show && props.release) {
+    externalURL.value = props.release.external_url || ''
     form.version = props.release.version || ''
     form.build = props.release.build != null ? String(props.release.build) : ''
     form.channel = props.release.channel || ''
@@ -126,7 +133,8 @@ async function handleSave() {
         channel: form.channel,
         min_os: form.min_os,
         changelog: form.changelog,
-        force_update: form.force_update
+        force_update: form.force_update,
+        ...(externalURL.value.trim() !== (props.release.external_url || '') ? {external_url: externalURL.value.trim()} : {})
       })
     })
     if (handleAuthError(res)) return

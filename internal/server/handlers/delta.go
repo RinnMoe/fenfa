@@ -57,6 +57,9 @@ func deltaPrefix(r store.Release) string {
 func activeDelta(r store.Release) (deltaManifest, bool) {
 	var m deltaManifest
 	err := json.Unmarshal([]byte(r.DeltaManifest), &m)
+	if r.ExternalURL != "" {
+		return m, false
+	}
 	return m, err == nil && m.Target.SHA256 == r.SHA256 && m.Target.Size == r.SizeBytes && m.Target.Version == r.Version && deltaBuildMatches(m.PackageName, m.Target.VersionCode, r.Build) && m.Channel == r.Channel
 }
 func deltaManifestURL(r store.Release, base string) string {
@@ -88,6 +91,10 @@ func UploadDelta(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		ctx, err := loadReleaseVariantContext(db, r)
+		if r.ExternalURL != "" {
+			deltaError(c, 400, "delta attachments require a Fenfa-hosted APK")
+			return
+		}
 		if err != nil || ctx.Variant.Platform != "android" || r.FileExt != ".apk" {
 			deltaError(c, 400, "delta requires an Android APK release")
 			return

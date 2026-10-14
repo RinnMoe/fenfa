@@ -27,6 +27,24 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label class="label">{{ t.uploadModal.source }}</label>
+          <select v-model="sourceMode" class="input" :disabled="uploading">
+            <option value="file">{{ t.uploadModal.fileSource }}</option>
+            <option value="link">{{ t.uploadModal.linkSource }}</option>
+          </select>
+        </div>
+        <div v-if="sourceMode === 'link'" class="form-group">
+          <label class="label" for="external-release-url">{{ t.uploadModal.linkRequired }}</label>
+          <input id="external-release-url" v-model="externalURL" type="url" placeholder="https://example.com/app.apk" class="input">
+          <p class="help-text">{{ t.uploadModal.linkHelp }}</p>
+          <label class="label">{{ t.uploadModal.linkFilename }}</label>
+          <input v-model="externalFilename" placeholder="app.apk" class="input">
+          <label class="label">{{ t.uploadModal.linkSize }}</label>
+          <input v-model="externalSize" type="number" min="0" step="1" class="input">
+          <label class="label">SHA256</label>
+          <input v-model="externalHash" maxlength="64" class="input">
+        </div>
         <div class="form-grid">
           <div class="form-group">
             <label class="label">{{ t.uploadModal.versionRequired }}</label>
@@ -58,7 +76,7 @@
           </label>
         </div>
 
-        <div class="form-group" style="margin-top: var(--space-3)">
+        <div v-if="sourceMode === 'file'" class="form-group" style="margin-top: var(--space-3)">
           <label class="label">{{ t.uploadModal.fileRequired }}</label>
           <div
             class="dropzone"
@@ -93,7 +111,7 @@
           </div>
         </div>
 
-        <div v-if="uploading" class="progress-section">
+        <div v-if="uploading && sourceMode === 'file'" class="progress-section">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
           </div>
@@ -117,7 +135,7 @@
     <template #footer>
       <button @click="handleClose" class="btn-secondary">{{ t.common.cancel }}</button>
       <button @click="handleUpload" :disabled="!canUpload" class="btn-primary">
-        {{ uploading ? t.uploadModal.uploading : t.uploadModal.uploadButton }}
+        {{ uploading ? t.uploadModal.uploading : sourceMode === 'link' ? t.uploadModal.createLink : t.uploadModal.uploadButton }}
       </button>
     </template>
   </n-modal>
@@ -152,6 +170,11 @@ const isDragging = ref(false)
 const uploading = ref(false)
 const uploadProgress = ref(0)
 const uploadResult = ref<any>(null)
+const sourceMode = ref<'file' | 'link'>('file')
+const externalURL = ref('')
+const externalFilename = ref('')
+const externalSize = ref('')
+const externalHash = ref('')
 
 const form = reactive({
   version: '',
@@ -175,7 +198,12 @@ const acceptTypes = computed(() => {
 })
 
 const canUpload = computed(() => {
-  return !!selectedFile.value && !!form.version && !uploading.value
+  const validLink = externalURL.value.trim().startsWith('https://')
+    && Number.isSafeInteger(Number(form.build || 0)) && Number(form.build || 0) >= 0
+    && Number.isSafeInteger(Number(externalSize.value || 0)) && Number(externalSize.value || 0) >= 0
+    && (!externalHash.value.trim() || /^[a-f0-9]{64}$/.test(externalHash.value.trim()))
+  return (sourceMode.value === 'file' ? !!selectedFile.value : validLink)
+    && !!form.version.trim() && !uploading.value
 })
 
 onMounted(async () => {
@@ -192,6 +220,11 @@ onMounted(async () => {
 })
 
 function resetForm() {
+  sourceMode.value = 'file'
+  externalURL.value = ''
+  externalFilename.value = ''
+  externalSize.value = ''
+  externalHash.value = ''
   form.version = ''
   form.build = ''
   form.channel = 'internal'
@@ -257,6 +290,30 @@ function formatFileSize(bytes: number): string {
 }
 
 async function handleUpload() {
+  if (sourceMode.value === 'link') {
+    if (!props.variant || !canUpload.value) return
+    uploading.value = true
+    uploadResult.value = null
+    try {
+      const res = await adminFetch(`api/variants/${props.variant.id}/releases/link`, {
+        method: 'POST',
+        token: token.value,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, version: form.version.trim(), build: Number(form.build || 0), external_url: externalURL.value.trim(), file_name: externalFilename.value.trim(), size_bytes: Number(externalSize.value || 0), sha256: externalHash.value.trim() })
+      })
+      if (handleAuthError(res)) return
+      uploadResult.value = await res.json()
+      if (res.ok && uploadResult.value.ok) {
+        emit('success')
+        resetForm()
+      }
+    } catch {
+      uploadResult.value = { ok: false, error: { message: t.value.uploadModal.unknownError } }
+    } finally {
+      uploading.value = false
+    }
+    return
+  }
   if (!props.variant || !selectedFile.value || !form.version) return
 
   const fd = new FormData()
